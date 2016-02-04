@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Gateway-agent-AndroidSample.iml" filepath="$PROJECT_DIR$/Gateway-agent-AndroidSample.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/thing-if-AndroidSDK/thingif/thingif.iml" filepath="$PROJECT_DIR$/thing-if-AndroidSDK/thingif/thingif.iml" />
+      <module fileurl="file://$PROJECT_DIR$/thing-if-AndroidSDK/thingiftest/thingiftest.iml" filepath="$PROJECT_DIR$/thing-if-AndroidSDK/thingiftest/thingiftest.iml" />
     </modules>
   </component>
 </project>

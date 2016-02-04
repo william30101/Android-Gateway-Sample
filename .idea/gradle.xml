@@ -11,6 +11,8 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/thing-if-AndroidSDK/thingif" />
+            <option value="$PROJECT_DIR$/thing-if-AndroidSDK/thingiftest" />
           </set>
         </option>
       </GradleProjectSettings>

@@ -16,6 +16,6 @@ public class GatewayKii extends Application{
         super.onCreate();
 
         // initialize the Kii SDK!
-        Kii.initialize(this,Config.APP_ID, Config.APP_KEY, Config.APP_SITE);
+        Kii.initialize(this,Config.APP_ID, Config.APP_KEY, Config.APP_SITE, false);
     }
 }
