@@ -25,20 +25,23 @@ repositories {
     }
 }
 
+repositories {
+    maven {
+        url  "http://dl.bintray.com/kii/KiiAndroidSDK"
+    }
+}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
-    compile('com.kii:cloud-sdk:2.4.3:library@aar') {
-        transitive = true
-    }
+    compile 'com.kii:cloud-sdk:2.4.2:library@aar'
+    compile project(path: ':thingif', configuration: 'debug')
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile 'com.android.support:design:23.1.1'
-    compile 'com.google.android.gms:play-services:8.4.0'
+    compile 'com.google.android.gms:play-services:7.8.0'
     compile 'com.google.code.gson:gson:2.3.1'
     compile 'com.squareup.okhttp:okhttp:2.4.0'
-    compile 'com.google.android.gms:play-services-ads:8.4.0'
-    compile 'com.google.android.gms:play-services-identity:8.4.0'
-    compile 'com.google.android.gms:play-services-gcm:8.4.0'
-    compile project(':thingif')
+    compile 'com.squareup.okhttp:okhttp-apache:2.3.0'
+    compile 'com.google.android.gms:play-services-gcm:7.8.0'
+    compile 'org.jdeferred:jdeferred-android-aar:1.2.4'
 }

@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="center">
+        android:gravity="center|top">
 
     <TextView
         android:layout_width="wrap_content"
@@ -20,7 +20,31 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Get"
-        android:id="@+id/getBn" />
+        android:id="@+id/getBtn" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OnBoard gateway"
+            android:id="@+id/onboardGatewayBtn" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Show gateway info"
+            android:id="@+id/showGatewayBtn" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OnBoard thing"
+            android:id="@+id/onboardThingBtn" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Show thing info"
+            android:id="@+id/showThingBtn" />
 
     </LinearLayout>
 </LinearLayout>
