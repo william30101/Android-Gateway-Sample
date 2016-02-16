@@ -8,6 +8,7 @@ import com.kii.thingif.Target;
 import com.kii.thingif.ThingIFAPI;
 import com.kii.thingif.command.Action;
 import com.kii.thingif.command.Command;
+import com.kii.thingif.gateway.EndNode;
 import com.kii.thingif.trigger.Predicate;
 import com.kii.thingif.trigger.Trigger;
 
@@ -67,6 +68,62 @@ public class IoTCloudPromiseAPIWrapper {
             }
         });
     }
+    public Promise<List<EndNode>, Throwable, Void> listEndNodes(final String gatewayThingID, @Nullable final int limit, @Nullable final String nextPaginationKey) {
+        return adm.when(new DeferredAsyncTask<Void, Void, List<EndNode>>() {
+            @Override
+            protected List<EndNode> doInBackgroundSafe(Void... voids) throws Exception {
+                List<EndNode> endNodes = new ArrayList<>();
+                String paginationKey = null;
+                do {
+                    Pair<List<EndNode>, String> result = api.listEndNodes(gatewayThingID, limit, nextPaginationKey);
+                    endNodes.addAll(result.first);
+                    paginationKey = result.second;
+                } while (paginationKey != null);
+                return endNodes;
+            }
+        });
+    }
+
+    public Promise<String, Throwable, Void> deleteGateway(
+            final String gatewayThingID) {
+        return adm.when(new DeferredAsyncTask<Void, Void, String>() {
+            @Override
+            protected String doInBackgroundSafe(Void... voids) throws Exception {
+                return api.deleteGateway(gatewayThingID);
+            }
+        });
+    }
+
+    public Promise<String, Throwable, Void> deleteEndNode(
+            final String gatewayThingID, final String thingID) {
+        return adm.when(new DeferredAsyncTask<Void, Void, String>() {
+            @Override
+            protected String doInBackgroundSafe(Void... voids) throws Exception {
+                return api.deleteEndNode(gatewayThingID, thingID);
+            }
+        });
+    }
+
+    public Promise<Target, Throwable, Void> replaceGateWay(final String gatewayThingID, final String vendorThingID,
+                                                           final String thingPassword, final Target gatewayTarget) {
+        return adm.when(new DeferredAsyncTask<Void, Void, Target>() {
+            @Override
+            protected Target doInBackgroundSafe(Void... voids) throws Exception {
+                return api.replaceGateway(gatewayThingID, vendorThingID, thingPassword, gatewayTarget);
+            }
+        });
+    }
+
+    public Promise<Target, Throwable, Void> replaceEndNode(final String gatewayThingID, final String endNodeVendorThingID,
+                                                           final String endNodePassword, final Target endNodeTarget) {
+        return adm.when(new DeferredAsyncTask<Void, Void, Target>() {
+            @Override
+            protected Target doInBackgroundSafe(Void... voids) throws Exception {
+                return api.replaceEndNode(gatewayThingID, endNodeVendorThingID, endNodePassword, endNodeTarget);
+            }
+        });
+    }
+
     public Promise<List<Command>, Throwable, Void> listCommands() {
         return adm.when(new DeferredAsyncTask<Void, Void, List<Command>>() {
             @Override

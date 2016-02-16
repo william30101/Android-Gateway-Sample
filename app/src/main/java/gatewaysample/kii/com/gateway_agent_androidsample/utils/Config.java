@@ -15,4 +15,5 @@ public class Config {
     public static final String THING_TYPE = "SmartLight-Demo";
     public static final String SCHEMA_NAME = "Smart-Light-Demo";
     public static final int SCHEMA_VERSION = 1;
+    public static final String MAPPING_FILE_NAME = "mapping.db";
 }

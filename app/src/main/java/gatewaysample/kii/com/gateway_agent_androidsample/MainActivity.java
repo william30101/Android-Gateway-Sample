@@ -1,12 +1,16 @@
 package gatewaysample.kii.com.gateway_agent_androidsample;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,12 +23,16 @@ import com.kii.thingif.Target;
 import com.kii.thingif.ThingIFAPI;
 import com.kii.thingif.TypedID;
 import com.kii.thingif.exception.ThingIFException;
+import com.kii.thingif.gateway.EndNode;
 
 import org.jdeferred.DoneCallback;
+import org.jdeferred.DonePipe;
 import org.jdeferred.FailCallback;
+import org.jdeferred.Promise;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.List;
 
 import gatewaysample.kii.com.gateway_agent_androidsample.promise_api_wrapper.IoTCloudPromiseAPIWrapper;
 import gatewaysample.kii.com.gateway_agent_androidsample.promise_api_wrapper.KiiCloudPromiseAPIWrapper;
@@ -35,11 +43,17 @@ import gatewaysample.kii.com.gateway_agent_androidsample.utils.GCMPreference;
 /**
  * Created by mac on 2/3/16.
  */
-public class MainActivity extends Activity implements View.OnClickListener{
+public class MainActivity extends Activity {
 
     private String TAG = "MainActivity";
+
+
+    private ListView listView;
+    private String[] list = {"OnBoardGateway", "Show GateWay Info", "OnBoardThing", "Show Thing Info",
+            "List Things", "Delete Gateway", "Delete EndNode", "Replace Gateway", "Replace EndNode", "Start Gateway Service"};
+    private ArrayAdapter<String> listAdapter;
+
     private KiiUser user;
-    private Button getBtn, onboardGatewayBtn, onboardThingBtn, showGatewayBtn, showThingBtn;
     private TextView accountView;
     private GoogleCloudMessaging gcm;
 
@@ -50,12 +64,6 @@ public class MainActivity extends Activity implements View.OnClickListener{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-
-        getBtn = (Button) findViewById(R.id.getBtn);
-        onboardGatewayBtn = (Button) findViewById(R.id.onboardGatewayBtn);
-        onboardThingBtn = (Button) findViewById(R.id.onboardThingBtn);
-        showGatewayBtn = (Button) findViewById(R.id.showGatewayBtn);
-        showThingBtn = (Button) findViewById(R.id.showThingBtn);
         accountView = (TextView) findViewById(R.id.accountView);
 
         KiiUser user = KiiUser.getCurrentUser();
@@ -66,7 +74,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
 
         if (savedInstanceState != null) {
             this.gatewayApi = savedInstanceState.getParcelable("ThingIFGatewayAPI");
-        }else{
+        } else {
             this.gatewayApi = ApiBuilder.buildApi(getApplicationContext(), owner);
         }
 
@@ -81,73 +89,205 @@ public class MainActivity extends Activity implements View.OnClickListener{
             new GCMRegisterTask(this.gatewayApi).execute();
         }
 
-        getBtn.setOnClickListener(this);
-        onboardGatewayBtn.setOnClickListener(this);
-        onboardThingBtn.setOnClickListener(this);
-        showGatewayBtn.setOnClickListener(this);
-        showThingBtn.setOnClickListener(this);
+        getUser();
+
+        listView = (ListView) findViewById(R.id.action_list_view);
+        listAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, list);
+        listView.setAdapter(listAdapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //Toast.makeText(getApplicationContext(), "你選擇的是" + list[position], Toast.LENGTH_SHORT).show();
+                switch (position) {
+                    case 0:
+                        if (gatewayApi.onboarded()) {
+                            Log.i(TAG, "already onBoard ");
+                        } else {
+                            ThingConstant gateway = new ThingConstant("7000", "1234", "gateway");
+                            onBoardGatewayVendorId(gateway, gatewayApi);
+                        }
+                        break;
+
+                    //Show Gateway Info
+                    case 1:
+                        if (gatewayApi.onboarded()) {
+                            showGatewayInfo(gatewayApi);
+                        }
+                        break;
+
+                    //onBoarding
+                    case 2:
+                        if (thingApi.onboarded()) {
+                            Toast.makeText(MainActivity.this, " Thing already onBoard", Toast.LENGTH_SHORT);
+                        } else {
+
+                            KiiCloudPromiseAPIWrapper wp = new KiiCloudPromiseAPIWrapper(gatewayApi);
+                            wp.loadWithThingID(gatewayApi.getTarget().getTypedID().getID()).then(new DoneCallback<KiiThing>() {
+                                @Override
+                                public void onDone(KiiThing thing) {
+                                    if (thing.getVendorThingID() != null) {
+                                        ThingConstant endNode = new ThingConstant("7001", "1234", thing.getVendorThingID(), gatewayApi.getOwner().getTypedID().toString(), "IdleLoop", null);
+                                        onBoardEndNodeVendorId(endNode, thingApi);
+
+                                    } else {
+                                        Toast.makeText(MainActivity.this, "Unable to get target VendorThingID!: ", Toast.LENGTH_LONG).show();
+
+                                    }
+                                }
+                            }, new FailCallback<Throwable>() {
+                                @Override
+                                public void onFail(Throwable result) {
+                                    Toast.makeText(MainActivity.this, "Unable to get target thing!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            });
+                        }
+                        break;
+
+                    //Show EndNode Info
+                    case 3:
+                        if (thingApi.onboarded()) {
+                            showEndNodeInfo(thingApi);
+                        }
+                        break;
+
+                    //List EndNode
+                    case 4:
+                        if (gatewayApi.onboarded()) {
+                            DialogListEndNodeFragment dialogListEndNode = new DialogListEndNodeFragment(gatewayApi);
+                            dialogListEndNode.show(getFragmentManager(), "DialogGateway");
+                        }
+                        break;
+                    //Delete Gateway
+                    case 5:
+                        if (gatewayApi.onboarded()) {
+                            deleteGateway(gatewayApi);
+                        }
+                        break;
+
+                    //Delete Thing
+                    case 6:
+                        if (thingApi.onboarded()) {
+                            deleteEndNode(gatewayApi, thingApi);
+                        }
+                        break;
+
+                    //Replace Gateway
+                    case 7:
+                        ThingConstant gateway = new ThingConstant("8000", "1234", "gatewaynew");
+                        replaceGateway(gateway, gatewayApi);
+                        break;
+
+                    //Replace EndNode
+                    case 8:
+                        ThingConstant endNodeCon = new ThingConstant("8100", "1234", "EndNodeNew");
+                        replaceEndNode(endNodeCon, gatewayApi, thingApi );
+                        break;
+
+                    //Start Gateway Service
+                    case 9:
+                        Intent intent = new Intent(MainActivity.this, GatewayService.class);
+                        startService(intent);
+                        break;
+                    default:
+                        break;
+
+                }
+            }
+        });
     }
 
-    private void getUser(){
+    private void getUser() {
         // Get the currently logged in user.
         KiiUser user = KiiUser.getCurrentUser();
         accountView.setText(user.getUsername());
 
     }
 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()){
-            case R.id.getBtn:
-                getUser();
-                break;
-            case R.id.onboardGatewayBtn:
-                if (gatewayApi.onboarded()){
-                    Log.i(TAG, "already onBoard ");
-                }else{
-                    ThingConstant gateway = new ThingConstant("7000", "1234" , "gateway");
-                    onBoardGatewayVendorId(gateway, gatewayApi);
-                }
-                break;
-            case R.id.onboardThingBtn:
-                if (thingApi.onboarded()){
-                    Toast.makeText(this," Thing already onBoard",Toast.LENGTH_SHORT);
-                }else{
+    private void deleteEndNode(final ThingIFAPI gatewayApi, final ThingIFAPI thingApi) {
 
-                    KiiCloudPromiseAPIWrapper wp = new KiiCloudPromiseAPIWrapper(gatewayApi);
-                    wp.loadWithThingID(gatewayApi.getTarget().getTypedID().getID()).then(new DoneCallback<KiiThing>() {
+        KiiCloudPromiseAPIWrapper wp = new KiiCloudPromiseAPIWrapper(gatewayApi);
+        wp.loadWithThingID(gatewayApi.getTarget().getTypedID().getID()).then(new DoneCallback<KiiThing>() {
+            @Override
+            public void onDone(KiiThing thing) {
+
+                if (thing.getID() != null) {
+                    final String gatewayThingID = thing.getID();
+
+
+                    KiiCloudPromiseAPIWrapper wp = new KiiCloudPromiseAPIWrapper(thingApi);
+                    wp.loadWithThingID(thingApi.getTarget().getTypedID().getID()).then(new DoneCallback<KiiThing>() {
                         @Override
                         public void onDone(KiiThing thing) {
-                            if (thing.getVendorThingID() != null) {
-                                ThingConstant endNode = new ThingConstant("7001", "1234" ,thing.getVendorThingID(), gatewayApi.getOwner().getTypedID().toString(), "IdleLoop", null);
-                                onBoardEndNodeVendorId(endNode, thingApi);
 
-                            } else {
-                                Toast.makeText(MainActivity.this, "Unable to get target VendorThingID!: " , Toast.LENGTH_LONG).show();
+                            if (thing.getID() != null) {
+                                String endNodeThingID = thing.getID();
+
+                                IoTCloudPromiseAPIWrapper wp = new IoTCloudPromiseAPIWrapper(thingApi);
+
+                                wp.deleteEndNode(gatewayThingID, endNodeThingID).then(new DoneCallback<String>() {
+                                    @Override
+                                    public void onDone(String result) {
+                                        Toast.makeText(MainActivity.this, "Delete EndNode " + result + "Success!", Toast.LENGTH_LONG).show();
+                                    }
+                                }, new FailCallback<Throwable>() {
+                                    @Override
+                                    public void onFail(Throwable result) {
+                                        Toast.makeText(MainActivity.this, "Delete EndNode failed!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                });
 
                             }
                         }
                     }, new FailCallback<Throwable>() {
                         @Override
                         public void onFail(Throwable result) {
-                            Toast.makeText(MainActivity.this, "Unable to get target thing!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "Unable to get gateway thing!: " + result.getMessage(), Toast.LENGTH_LONG).show();
                         }
                     });
+
+
                 }
-                break;
-            case R.id.showGatewayBtn:
-                if (gatewayApi.onboarded()){
-                    showGatewayInfo(gatewayApi);
+            }
+        }, new FailCallback<Throwable>() {
+            @Override
+            public void onFail(Throwable result) {
+                Toast.makeText(getApplicationContext(), "Unable to get gateway thing!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+
+
+    }
+
+    private void deleteGateway(final ThingIFAPI api) {
+
+        KiiCloudPromiseAPIWrapper wp = new KiiCloudPromiseAPIWrapper(api);
+        wp.loadWithThingID(api.getTarget().getTypedID().getID()).then(new DoneCallback<KiiThing>() {
+            @Override
+            public void onDone(KiiThing thing) {
+
+                if (thing.getID() != null) {
+                    IoTCloudPromiseAPIWrapper wp = new IoTCloudPromiseAPIWrapper(api);
+
+                    wp.deleteGateway(thing.getID()).then(new DoneCallback<String>() {
+                        @Override
+                        public void onDone(String result) {
+                            Toast.makeText(MainActivity.this, "Delete Gateway " + result + "Success!", Toast.LENGTH_LONG).show();
+                        }
+                    }, new FailCallback<Throwable>() {
+                        @Override
+                        public void onFail(Throwable result) {
+                            Toast.makeText(MainActivity.this, "Delete Gateway failed!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+
                 }
-                break;
-            case R.id.showThingBtn:
-                if (thingApi.onboarded()){
-                    showEndNodeInfo(thingApi);
-                }
-                break;
-            default:
-                break;
-        }
+            }
+        }, new FailCallback<Throwable>() {
+            @Override
+            public void onFail(Throwable result) {
+                Toast.makeText(getApplicationContext(), "Unable to get gateway thing!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void onBoardEndNodeVendorId(ThingConstant thingCon, final ThingIFAPI api) {
@@ -162,11 +302,11 @@ public class MainActivity extends Activity implements View.OnClickListener{
         IoTCloudPromiseAPIWrapper wp = new IoTCloudPromiseAPIWrapper(api);
 
         wp.onboardEndNode(endNodeVendorThingID, endNodeThingPassword, gatewayVendorThingID,
-                endNodeThingType,  owner, endNodeThingProperties).then(new DoneCallback<Target>() {
+                endNodeThingType, owner, endNodeThingProperties).then(new DoneCallback<Target>() {
             @Override
             public void onDone(Target result) {
                 Toast.makeText(MainActivity.this, "On board succeeded!", Toast.LENGTH_LONG).show();
-                Log.i(TAG,"onBoard : " + api.onboarded());
+                Log.i(TAG, "onBoard : " + api.onboarded());
             }
         }, new FailCallback<Throwable>() {
             @Override
@@ -176,7 +316,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
         });
     }
 
-    private void onBoardGatewayVendorId(ThingConstant thingCon, final ThingIFAPI api){
+    private void onBoardGatewayVendorId(ThingConstant thingCon, final ThingIFAPI api) {
 
         final String venderThingID = thingCon.getVenderThingID();
         final String thingPassword = thingCon.getThingPassword();
@@ -187,7 +327,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
             @Override
             public void onDone(Target result) {
                 Toast.makeText(MainActivity.this, "On board succeeded!", Toast.LENGTH_LONG).show();
-                Log.i(TAG,"onBoard : " + api.onboarded());
+                Log.i(TAG, "onBoard : " + api.onboarded());
             }
         }, new FailCallback<Throwable>() {
             @Override
@@ -197,13 +337,96 @@ public class MainActivity extends Activity implements View.OnClickListener{
         });
     }
 
-    private void showGatewayInfo(ThingIFAPI gatewayApi){
+    private void showGatewayInfo(ThingIFAPI gatewayApi) {
 
         DialogGatewayFragment dialogGateway = new DialogGatewayFragment(gatewayApi);
         dialogGateway.show(getFragmentManager(), "DialogGateway");
     }
 
-    private void showEndNodeInfo(ThingIFAPI endNodeApi){
+    private void replaceGateway(ThingConstant thingCon, final ThingIFAPI api) {
+        //TODO
+        // REST API Seems problem.
+
+//        final String venderThingID = thingCon.getVenderThingID();
+//        final String thingPassword = thingCon.getThingPassword();
+//
+//        IoTCloudPromiseAPIWrapper wp = new IoTCloudPromiseAPIWrapper(api);
+//
+//        wp.onboardGateWay(venderThingID, thingPassword, thingType).then(new DoneCallback<Target>() {
+//            @Override
+//            public void onDone(Target result) {
+//                Toast.makeText(MainActivity.this, "On board succeeded!", Toast.LENGTH_LONG).show();
+//                Log.i(TAG, "onBoard : " + api.onboarded());
+//            }
+//        }, new FailCallback<Throwable>() {
+//            @Override
+//            public void onFail(Throwable result) {
+//                Toast.makeText(MainActivity.this, "On board failed!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+//            }
+//        });
+    }
+
+    private void replaceEndNode(ThingConstant thingCon, final ThingIFAPI gatewayApi, final ThingIFAPI endNodeApi) {
+
+        final String venderThingID = thingCon.getVenderThingID();
+        final String thingPassword = thingCon.getThingPassword();
+
+
+
+        KiiCloudPromiseAPIWrapper wp = new KiiCloudPromiseAPIWrapper(gatewayApi);
+        wp.loadWithThingID(gatewayApi.getTarget().getTypedID().getID()).then(new DoneCallback<KiiThing>() {
+            @Override
+            public void onDone(KiiThing thing) {
+
+                if (thing.getID() != null) {
+                    final String gatewayThingID = thing.getID();
+
+
+                    KiiCloudPromiseAPIWrapper wp = new KiiCloudPromiseAPIWrapper(endNodeApi);
+                    wp.loadWithThingID(endNodeApi.getTarget().getTypedID().getID()).then(new DoneCallback<KiiThing>() {
+                        @Override
+                        public void onDone(KiiThing thing) {
+
+                            if (thing.getID() != null) {
+                                String endNodeThingID = thing.getID();
+
+                                IoTCloudPromiseAPIWrapper wp = new IoTCloudPromiseAPIWrapper(endNodeApi);
+
+                                wp.replaceEndNode(gatewayThingID, venderThingID, thingPassword, endNodeApi.getTarget()).then(new DoneCallback<Target>() {
+                                    @Override
+                                    public void onDone(Target result) {
+                                        Toast.makeText(MainActivity.this, "Replace EndNode " + result.getTypedID() + "Success!", Toast.LENGTH_LONG).show();
+                                    }
+                                }, new FailCallback<Throwable>() {
+                                    @Override
+                                    public void onFail(Throwable result) {
+                                        Toast.makeText(MainActivity.this, "Replace EndNode failed!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                });
+
+                            }
+                        }
+                    }, new FailCallback<Throwable>() {
+                        @Override
+                        public void onFail(Throwable result) {
+                            Toast.makeText(getApplicationContext(), "Unable to get gateway thing!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+
+
+                }
+            }
+        }, new FailCallback<Throwable>() {
+            @Override
+            public void onFail(Throwable result) {
+                Toast.makeText(getApplicationContext(), "Unable to get gateway thing!: " + result.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+
+
+    }
+
+    private void showEndNodeInfo(ThingIFAPI endNodeApi) {
 
         DialogEndNodeFragment dialogGateway = new DialogEndNodeFragment(endNodeApi);
         dialogGateway.show(getFragmentManager(), "DialogEndNode");
@@ -222,6 +445,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
         GCMRegisterTask(ThingIFAPI api) {
             this.api = api;
         }
+
         @Override
         protected Exception doInBackground(Void... params) {
             if (TextUtils.isEmpty(Config.SENDERID)) {
@@ -255,6 +479,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
             }
             return null;
         }
+
         @Override
         protected void onPostExecute(final Exception e) {
             if (e != null) {
@@ -263,4 +488,10 @@ public class MainActivity extends Activity implements View.OnClickListener{
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Intent intent = new Intent(MainActivity.this, GatewayService.class);
+        stopService(intent);
+    }
 }

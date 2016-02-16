@@ -37,7 +37,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:label="@string/app_name"/>
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"/>
 
         <!-- *** add following lines *** -->
         <receiver android:name="gatewaysample.kii.com.gateway_agent_androidsample.KiiPushBroadcastReceiver" android:permission="com.google.android.c2dm.permission.SEND" >
@@ -48,6 +49,13 @@
             </intent-filter>
         </receiver>
         <!-- *** up to this point *** -->
+
+        <service
+            android:name=".GatewayService"
+            android:icon="@mipmap/ic_launcher"
+            android:label="gatewayService"
+            >
+        </service>
 
     </application>
 
