@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/gateway_app" android:title="gatewayApp" />
+    <item android:id="@+id/endnode_app" android:title="endNode" />
+</menu>

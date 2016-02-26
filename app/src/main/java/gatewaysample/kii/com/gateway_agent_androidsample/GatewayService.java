@@ -478,6 +478,7 @@ public class GatewayService extends Service {
             synchronized(syncObject) {
                 getTID("login thread ");
                 KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, Site.JP);
+                //KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, "127.0.0.1");
                 GatewayAPIBuilder gatewayBuilder = GatewayAPIBuilder.newBuilder(GatewayService.this, app, "127.0.0.1", "william.wu", "1qaz@WSX");
                 try {
                     gatewayA = gatewayBuilder.build4Gateway();

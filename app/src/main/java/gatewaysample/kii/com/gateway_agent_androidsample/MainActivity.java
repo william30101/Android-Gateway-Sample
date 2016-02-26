@@ -4,14 +4,19 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.support.v7.widget.Toolbar;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.kii.cloud.storage.KiiThing;
@@ -44,7 +49,7 @@ import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.GCMPreference;
 
 
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity {
 
     private String TAG = "MainActivity";
 
@@ -62,6 +67,7 @@ public class MainActivity extends Activity {
 
 
     private ThingIFAPI gatewayApi, thingApi;
+    private Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +80,8 @@ public class MainActivity extends Activity {
         String accessToken = user.getAccessToken();
         TypedID typedUserID = new TypedID(TypedID.Types.USER, userID);
         Owner owner = new Owner(typedUserID, accessToken);
+
+        initToolBar();
 
         if (savedInstanceState != null) {
             this.gatewayApi = savedInstanceState.getParcelable("ThingIFGatewayAPI");
@@ -263,6 +271,38 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void initToolBar(){
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle("GatewaySample");
+//        toolbar.inflateMenu(R.menu.toolbar_menu);
+        setSupportActionBar(toolbar);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        Log.i(TAG,"menu ID : "+ id);
+        if (id == R.id.gateway_app){
+            Intent intent = new Intent(this, GatewayApp.class);
+//            EditText editText = (EditText) findViewById(R.id.edit_message);
+//            String message = editText.getText().toString();
+//            intent.putExtra(EXTRA_MESSAGE, message);
+            startActivity(intent);
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
 
     public class SendToGatewayThread implements Runnable {
 
