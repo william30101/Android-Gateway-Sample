@@ -9,7 +9,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -23,15 +22,19 @@ import com.kii.thingif.Target;
 import com.kii.thingif.ThingIFAPI;
 import com.kii.thingif.TypedID;
 import com.kii.thingif.exception.ThingIFException;
-import com.kii.thingif.gateway.EndNode;
 
 import org.jdeferred.DoneCallback;
-import org.jdeferred.DonePipe;
 import org.jdeferred.FailCallback;
-import org.jdeferred.Promise;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
 import gatewaysample.kii.com.gateway_agent_androidsample.promise_api_wrapper.IoTCloudPromiseAPIWrapper;
@@ -40,9 +43,7 @@ import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.ApiBui
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.GCMPreference;
 
-/**
- * Created by mac on 2/3/16.
- */
+
 public class MainActivity extends Activity {
 
     private String TAG = "MainActivity";
@@ -50,7 +51,9 @@ public class MainActivity extends Activity {
 
     private ListView listView;
     private String[] list = {"OnBoardGateway", "Show GateWay Info", "OnBoardThing", "Show Thing Info",
-            "List Things", "Delete Gateway", "Delete EndNode", "Replace Gateway", "Replace EndNode", "Start Gateway Service"};
+            "List Things", "Delete Gateway", "Delete EndNode", "Replace Gateway", "Replace EndNode", "Start Gateway Service",
+            "OnBoarding EndNode", "List endNode", "Replace EndNode", "Read mapping file",  "Del EndNode", "updateConnectionsStatus",
+            "update EndNode States", "Get EndNode States", "Send Cmd To EndNode", "Update Cmd Result"};
     private ArrayAdapter<String> listAdapter;
 
     private KiiUser user;
@@ -90,6 +93,7 @@ public class MainActivity extends Activity {
         }
 
         getUser();
+
 
         listView = (ListView) findViewById(R.id.action_list_view);
         listAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, list);
@@ -188,6 +192,69 @@ public class MainActivity extends Activity {
                         Intent intent = new Intent(MainActivity.this, GatewayService.class);
                         startService(intent);
                         break;
+
+                    //Send Cmd to gateway
+                    // Mad socket client , send to server
+                    case 10:
+                        //sendToGatewayThread.start();
+
+                        Runnable run_boarding = new SendToGatewayThread(Config.THING_ONBOARDING);
+                        new Thread(run_boarding).start();
+
+                        break;
+                    case 11:
+
+                        Runnable list_endnode = new SendToGatewayThread(Config.LIST_ENDNODE);
+                        new Thread(list_endnode).start();
+                        break;
+                    case 12:
+
+                        Runnable replace_endnode = new SendToGatewayThread(Config.REPLACE_ENDNODE);
+                        new Thread(replace_endnode).start();
+                        break;
+
+                    //read mapping file
+                    case 13:
+
+                        Runnable readMappingFile = new SendToGatewayThread(Config.READ_MAPPING_FILE);
+                        new Thread(readMappingFile).start();
+                        break;
+
+                    // Delete EndNode
+                    case 14:
+                        Runnable delEndNodeRun = new SendToGatewayThread(Config.DEL_ENDNODE);
+                        new Thread(delEndNodeRun).start();
+                        break;
+
+                    // Update EndNode Connection Status
+                    case 15:
+                        Runnable conStatus = new SendToGatewayThread(Config.UPDATE_ENDNODE_CONNECTION_STATUS);
+                        new Thread(conStatus).start();
+                        break;
+
+                    // Update EndNode States
+                    case 16:
+                        Runnable statesRun = new SendToGatewayThread(Config.UPDATE_ENDNODE_STATES);
+                        new Thread(statesRun).start();
+                        break;
+
+                    // Update EndNode States
+                    case 17:
+                        Runnable getStatesRun = new SendToGatewayThread(Config.GET_ENDNODE_STATES);
+                        new Thread(getStatesRun).start();
+                        break;
+
+                    // Send Cmd To EndNode
+                    case 18:
+                        Runnable sendCmdRun = new SendToGatewayThread(Config.SEND_CMD_TO_ENDNODE);
+                        new Thread(sendCmdRun).start();
+                        break;
+
+                    // Update Cmd Result
+                    case 19:
+                        Runnable cmdResultRun = new SendToGatewayThread(Config.UPDATE_CMD_RESULT);
+                        new Thread(cmdResultRun).start();
+                        break;
                     default:
                         break;
 
@@ -195,6 +262,224 @@ public class MainActivity extends Activity {
             }
         });
     }
+
+
+    public class SendToGatewayThread implements Runnable {
+
+        private String mWhichEvent;
+
+        public SendToGatewayThread(String parameter) {
+            // store parameter for later user
+            mWhichEvent = parameter;
+        }
+
+        public void run() {
+
+
+            List<String> socketObject = new ArrayList<>();
+            InetAddress host = null;
+            try {
+                host = InetAddress.getLocalHost(); // 127.0.0.1
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
+            Socket socket = null;
+            ObjectOutputStream oos = null;
+            ObjectInputStream ois = null;
+
+            //establish socket connection to server
+            try {
+                socket = new Socket(host.getHostName(), 9876);
+                //write to socket using ObjectOutputStream
+                oos = new ObjectOutputStream(socket.getOutputStream());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Log.i(TAG, "Sending request " + mWhichEvent +" to Socket Server");
+
+            try {
+                oos.writeObject(mWhichEvent);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+//            switch(mWhichEvent){
+//
+//                case Config.THING_ONBOARDING :
+//
+//                    try {
+//                        oos.writeObject(mWhichEvent);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    break;
+//                case Config.LIST_ENDNODE:
+//                    try {
+//                        oos.writeObject(mWhichEvent);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    break;
+//
+//                case Config.REPLACE_ENDNODE:
+//                    try {
+//                        oos.writeObject(mWhichEvent);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    break;
+//
+//                case Config.READ_MAPPING_FILE:
+//                    try {
+//                        oos.writeObject(mWhichEvent);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    break;
+//
+//                case Config.DEL_ENDNODE:
+//                    try {
+//                        oos.writeObject(mWhichEvent);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    break;
+//                default:
+//                    Log.i(TAG, "exit");
+//                    try {
+//                        oos.writeObject("exit");
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    break;
+//            }
+
+            //read the server response message
+            try {
+                ois = new ObjectInputStream(socket.getInputStream());
+                String message = (String) ois.readObject();
+                Log.i(TAG, "Message: " + message);
+            } catch (SocketTimeoutException e) {
+                Log.i(TAG,"timeout");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+
+            //close resources
+            try {
+                ois.close();
+                oos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+//            if(mWhichEvent == "thihg_onboarding") {
+//                //establish socket connection to server
+//                try {
+//                    socket = new Socket(host.getHostName(), 9876);
+//                    //write to socket using ObjectOutputStream
+//                    oos = new ObjectOutputStream(socket.getOutputStream());
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                Log.i(TAG, "Sending request to Socket Server");
+//                try {
+//                    if (i == 1) {
+//                        oos.writeObject("exit");
+//                    }else{
+//                        oos.writeObject("" + i);
+//                    }
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                //read the server response message
+//                try {
+//                    ois = new ObjectInputStream(socket.getInputStream());
+//                    String message = (String) ois.readObject();
+//                    Log.i(TAG, "Message: " + message);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                } catch (ClassNotFoundException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                //close resources
+//                try {
+//                    ois.close();
+//                    oos.close();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+        }
+    }
+
+    Thread sendToGatewayThread = new Thread(new Runnable() {
+
+
+
+        @Override
+        public void run() {
+
+
+
+            InetAddress host = null;
+            try {
+                host = InetAddress.getLocalHost(); // 127.0.0.1
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
+            Socket socket = null;
+            ObjectOutputStream oos = null;
+            ObjectInputStream ois = null;
+            for(int i=0; i<5;i++) {
+                //establish socket connection to server
+                try {
+                    socket = new Socket(host.getHostName(), 9876);
+                    //write to socket using ObjectOutputStream
+                    oos = new ObjectOutputStream(socket.getOutputStream());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Log.i(TAG, "Sending request to Socket Server");
+                try {
+                    if (i == 1) {
+                        oos.writeObject("exit");
+                    }else{
+                        oos.writeObject("" + i);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                //read the server response message
+                try {
+                    ois = new ObjectInputStream(socket.getInputStream());
+                    String message = (String) ois.readObject();
+                    Log.i(TAG, "Message: " + message);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+                //close resources
+                try {
+                    ois.close();
+                    oos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    });
 
     private void getUser() {
         // Get the currently logged in user.

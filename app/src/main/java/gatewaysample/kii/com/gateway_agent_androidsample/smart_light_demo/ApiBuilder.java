@@ -5,6 +5,7 @@ import android.content.Context;
 import com.kii.thingif.Owner;
 import com.kii.thingif.ThingIFAPI;
 import com.kii.thingif.ThingIFAPIBuilder;
+import com.kii.thingif.schema.Schema;
 import com.kii.thingif.schema.SchemaBuilder;
 
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
@@ -26,5 +27,6 @@ public class ApiBuilder {
         builder.addSchema(schemaBuilder.build());
         return builder.build();
     }
+
 
 }
