@@ -1,17 +1,17 @@
 package gatewaysample.kii.com.gateway_agent_androidsample;
 
-/**
- * Created by william.wu on 2/15/16.
- */
+
 public class EndNode {
     String vendorID;
     String authorID;
     String AccessToken;
+    boolean isOnline;
 
-    public EndNode(String vendorID, String authorID, String accessToken) {
+    public EndNode(String vendorID, String authorID, String accessToken, boolean isOnline) {
         this.vendorID = vendorID;
         this.authorID = authorID;
-        AccessToken = accessToken;
+        this.AccessToken = accessToken;
+        this.isOnline = isOnline;
     }
 
     public String getVendorID() {
@@ -24,5 +24,9 @@ public class EndNode {
 
     public String getAccessToken() {
         return AccessToken;
+    }
+
+    public boolean isOnline() {
+        return isOnline;
     }
 }

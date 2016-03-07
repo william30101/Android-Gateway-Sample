@@ -13,6 +13,8 @@ public class Config {
     public static final String SCHEMA_NAME = "Smart-Light-Demo";
     public static final int SCHEMA_VERSION = 1;
     public static final String MAPPING_FILE_NAME = "mapping.db";
+    public static final String GATEWAY_USERNAME = "william.wu";
+    public static final String GATEWAY_USER_PASS = "1qaz@WSX";
 
     // client to server command
     public static final String THING_ONBOARDING = "thihg_onboarding";
@@ -26,4 +28,10 @@ public class Config {
     public static final String GET_ENDNODE_STATES = "get_endnode_states";
     public static final String UPDATE_ENDNODE_CONNECTION_STATUS = "update_endnode_conneciton_states";
     public static final String UPDATE_CMD_RESULT = "update_cmd_result";
+    public static final String ENDNODE_ONBOARD = "EndNode Onboard";
+    public static final String REGISTER_CMD = "Register";
+    public static final String GET_GATEWAY_ID = "Get Gateway ID";
+    public static final String GET_PENDING_ENDNODE = "Get Pending EndNode";
+    public static final String ONBOARD_SUCCESS = "OnBoard Success";
+
 }

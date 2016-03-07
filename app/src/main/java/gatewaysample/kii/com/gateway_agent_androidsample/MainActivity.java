@@ -1,10 +1,15 @@
 package gatewaysample.kii.com.gateway_agent_androidsample;
 
-import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
@@ -44,6 +49,7 @@ import java.util.List;
 
 import gatewaysample.kii.com.gateway_agent_androidsample.promise_api_wrapper.IoTCloudPromiseAPIWrapper;
 import gatewaysample.kii.com.gateway_agent_androidsample.promise_api_wrapper.KiiCloudPromiseAPIWrapper;
+import gatewaysample.kii.com.gateway_agent_androidsample.rest_service.ContactActivity;
 import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.ApiBuilder;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.GCMPreference;
@@ -68,6 +74,9 @@ public class MainActivity extends AppCompatActivity {
 
     private ThingIFAPI gatewayApi, thingApi;
     private Toolbar toolbar;
+
+    GatewayService gatewayService;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -197,8 +206,12 @@ public class MainActivity extends AppCompatActivity {
 
                     //Start Gateway Service
                     case 9:
-                        Intent intent = new Intent(MainActivity.this, GatewayService.class);
-                        startService(intent);
+//                        Intent intent = new Intent(MainActivity.this, GatewayService.class);
+//                        startService(intent);
+                        Intent serviceIntent = new Intent(MainActivity.this, GatewayService.class);
+                        startService(serviceIntent); //Starting the service
+                        bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE); //Binding to the service!
+
                         break;
 
                     //Send Cmd to gateway
@@ -223,9 +236,11 @@ public class MainActivity extends AppCompatActivity {
 
                     //read mapping file
                     case 13:
+//
+//                        Runnable readMappingFile = new SendToGatewayThread(Config.READ_MAPPING_FILE);
+//                        new Thread(readMappingFile).start();
 
-                        Runnable readMappingFile = new SendToGatewayThread(Config.READ_MAPPING_FILE);
-                        new Thread(readMappingFile).start();
+                        sendMessage();
                         break;
 
                     // Delete EndNode
@@ -271,6 +286,23 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void sendMessage() {
+        com.kii.thingif.internal.utils.Log.d(TAG, "Broadcasting message");
+        Intent intent = new Intent("toService");
+        // You can also include some extra data.
+        intent.putExtra("message", "SendToService msg");
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            String message = intent.getStringExtra("message");
+            Log.d("receiver", "Got message: " + message);
+        }
+    };
+
     private void initToolBar(){
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle("GatewaySample");
@@ -299,10 +331,18 @@ public class MainActivity extends AppCompatActivity {
 //            String message = editText.getText().toString();
 //            intent.putExtra(EXTRA_MESSAGE, message);
             startActivity(intent);
+        }else if (id == R.id.endnode_app){
+            // Test REST Service
+            Intent intent = new Intent(this, ContactActivity.class);
+//            EditText editText = (EditText) findViewById(R.id.edit_message);
+//            String message = editText.getText().toString();
+//            intent.putExtra(EXTRA_MESSAGE, message);
+            startActivity(intent);
         }
 
         return super.onOptionsItemSelected(item);
     }
+
 
     public class SendToGatewayThread implements Runnable {
 
@@ -813,10 +853,50 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            Toast.makeText(MainActivity.this, "onServiceConnected called", Toast.LENGTH_SHORT).show();
+            // We've binded to LocalService, cast the IBinder and get LocalService instance
+            GatewayService.LocalBinder binder = (GatewayService.LocalBinder) service;
+            gatewayService = binder.getServiceInstance(); //Get instance of your service!
+            //gatewayService.registerClient(MainActivity.this); //Activity register in the service as client for callabcks!
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            Toast.makeText(MainActivity.this, "onServiceDisconnected called", Toast.LENGTH_SHORT).show();
+
+        }
+    };
+
+    @Override
+    protected void onResume() {
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                mReceiver, new IntentFilter("action"));
+        super.onResume();
+
+    }
+
+    @Override
+    protected void onPause() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(
+                mReceiver);
+        super.onPause();
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Intent intent = new Intent(MainActivity.this, GatewayService.class);
-        stopService(intent);
+        Intent serviceIntent = new Intent(MainActivity.this, GatewayService.class);
+//        stopService(serviceIntent);
+
+        unbindService(mConnection);
+        stopService(serviceIntent);
+
     }
 }

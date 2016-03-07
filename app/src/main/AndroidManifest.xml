@@ -47,6 +47,12 @@
             android:label="@string/app_name"
             android:screenOrientation="portrait"/>
 
+        <activity android:name=".rest_service.ContactActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
+
+        </activity>
+
         <!-- *** add following lines *** -->
         <receiver android:name="gatewaysample.kii.com.gateway_agent_androidsample.KiiPushBroadcastReceiver" android:permission="com.google.android.c2dm.permission.SEND" >
             <intent-filter>
@@ -68,8 +74,14 @@
         <service android:name="org.eclipse.paho.android.service.MqttService" >
         </service>
 
+        <!-- REST Service -->
+        <!--<service android:name=".rest_service.BookService" android:exported="true" android:enabled="true">-->
+            <!--    <intent-filter>-->
+            <!--        <action android:name="gatewaysample.kii.com.gateway_agent_androidsample.rest_service.IContactService" />-->
+            <!--    </intent-filter>-->
+        <!--</service>-->
 
-        
+
     </application>
 
 </manifest>

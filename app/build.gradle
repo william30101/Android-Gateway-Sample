@@ -34,15 +34,20 @@ repositories {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
-    compile 'com.kii:cloud-sdk:2.4.2:library@aar'
+    //compile 'com.kii:cloud-sdk:2.4.4:library@aar'
+    compile 'com.example.library:android-cloud-sdk-v2.4.4@aar'
     compile project(path: ':thingif', configuration: 'debug')
-    compile 'com.android.support:design:23.1.1'
     //compile 'com.google.android.gms:play-services:8.4.0'
+    compile files('libs/org.restlet.jar')
+    compile files('libs/org.apache.httpclient.jar')
+    compile files('libs/org.restlet.ext.jaxrs.jar')
+    compile files('libs/org.restlet.ext.nio.jar')
+    compile 'com.android.support:design:23.1.1'
     compile 'com.google.android.gms:play-services-gcm:8.4.0'
     compile 'org.jdeferred:jdeferred-android-aar:1.2.4'
     compile 'com.google.android.gms:play-services-ads:8.4.0'
     compile 'com.google.android.gms:play-services-identity:8.4.0'
     compile 'com.google.code.gson:gson:2.3.1'
-    compile 'com.squareup.okhttp:okhttp:2.3.0'
+    compile 'com.squareup.okhttp:okhttp:2.4.0'
     compile 'com.squareup.okhttp:okhttp-apache:2.3.0'
 }
