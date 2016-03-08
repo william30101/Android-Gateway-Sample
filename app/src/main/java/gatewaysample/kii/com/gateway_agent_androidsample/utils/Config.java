@@ -1,6 +1,10 @@
 package gatewaysample.kii.com.gateway_agent_androidsample.utils;
 
+import android.bluetooth.BluetoothDevice;
+
 import com.kii.cloud.storage.Kii;
+
+import java.util.List;
 
 public class Config {
     public final static String APP_ID = "dc1df0f2";
@@ -33,5 +37,8 @@ public class Config {
     public static final String GET_GATEWAY_ID = "Get Gateway ID";
     public static final String GET_PENDING_ENDNODE = "Get Pending EndNode";
     public static final String ONBOARD_SUCCESS = "OnBoard Success";
+
+    // Converter
+    public static final String SEARCH_ENDNODE = "Search EndNode";
 
 }

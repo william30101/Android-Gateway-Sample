@@ -32,6 +32,7 @@ import java.util.List;
 
 import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
 import gatewaysample.kii.com.gateway_agent_androidsample.R;
+import gatewaysample.kii.com.gateway_agent_androidsample.converter.MainConverter;
 import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.MqttClient;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
 
@@ -42,7 +43,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
     ListView listView;
     private ArrayAdapter<String> listAdapter;
     private String[] list = {Config.REGISTER_CMD,Config.ENDNODE_ONBOARD, Config.GET_GATEWAY_ID,
-            Config.ONBOARD_SUCCESS};
+            Config.ONBOARD_SUCCESS, Config.SEARCH_ENDNODE};
     private Toolbar toolbar;
     private String accessToken = "jaiwefjia";
 
@@ -65,7 +66,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
     Owner owner;
     ThreadCall threadCall;
     RestThread restThread;
-
+    public static final int resultNum = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -190,6 +191,11 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
                     restThread.start();
                 }
                 break;
+            case Config.SEARCH_ENDNODE:
+                Intent intent = new Intent();
+                intent.setClass(ContactActivity.this, MainConverter.class);
+                startActivityForResult(intent, resultNum);
+                break;
             default:
                 break;
         }
@@ -198,6 +204,16 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
 
 
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode == RESULT_OK){
+            if(requestCode == resultNum){
+                Log.i(TAG,"return from converter");
+            }
+        }
     }
 
 
