@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -14,14 +15,22 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.kii.thingif.command.Action;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.UUID;
 
+import de.greenrobot.event.EventBus;
 import gatewaysample.kii.com.gateway_agent_androidsample.R;
+import gatewaysample.kii.com.gateway_agent_androidsample.rest_service.ContactActivity;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
 
-public class ClientSocketActivity extends Activity
+public class ClientSocketActivity implements CallBack
 {
 	private static final String TAG = ClientSocketActivity.class.getSimpleName();
 	private static final int REQUEST_DISCOVERY = 0x1;
@@ -35,72 +44,66 @@ public class ClientSocketActivity extends Activity
 	private OutputStream outputStream;
 	private InputStream inputStream;
 	private StringBuffer sbu;
-	
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND,
-		WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
-		setContentView(R.layout.client_socket);
+	private Context mContext;
+	DiscoveryActivity dis ;
+	private EventBus mEventBus;
+
+	public ClientSocketActivity(Context context){
+		mContext = context;
+		dis = new DiscoveryActivity(mContext);
+	}
+
+	public void onStart() {
+
+		mEventBus = EventBus.getDefault();
+
+		_bluetooth.enable();
+
+
+		//Wait 5 sec for BT enable.
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 		if (!_bluetooth.isEnabled()) {
-			finish();
+			Log.i(TAG,"BT not enabled.");
 			return;
 		}
-		Intent intent = new Intent(this, DiscoveryActivity.class);
-		
-		/* Prompted to select a server to connect */
-		Toast.makeText(this, "select device to connect", Toast.LENGTH_SHORT).show();
-		
-		/* Select device for list */
-		startActivityForResult(intent, REQUEST_DISCOVERY);
-		
-		sTextView = (TextView)findViewById(R.id.sTextView);
-		sEditText = (EditText)findViewById(R.id.sEditText);
-		
-		Log.d(TAG, ">>setOnKeyListener");
+
+
+		Log.i(TAG,"BT enabled.");
+
+		//Toast.makeText(mContext, "select device to connect", Toast.LENGTH_SHORT).show();
+		dis.setCallBack(this);
+		dis.onStart();
+
+
 	}
-	
-	
-	public void onButtonClicksend(View view) throws IOException {
-		
-		if(str != null)
-		{
-			Log.d(TAG, ">>second");
-			sTextView.setText(str + "--> " + sEditText.getText());
-			str += ("--> " + sEditText.getText().toString());
-		}
-		else
-		{
-			Log.d(TAG, ">>frist");
-			sTextView.setText("--> " + sEditText.getText());
-			str = "--> " + sEditText.getText().toString();
-		}
-		str += '\n';
-		
-		String tmpStr=sEditText.getText().toString();
-		byte bytes[] = tmpStr.getBytes();
-		outputStream.write(bytes);
-	}
-	
-	/* after select, connect to device */
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (requestCode != REQUEST_DISCOVERY) {
-			finish();
-			return;
-		}
-		if (resultCode != RESULT_OK) {
-			finish();
-			return;
-		}
-		final BluetoothDevice device = data.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+//
+//	/* after select, connect to device */
+//	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//		if (requestCode == REQUEST_ENABLE) {
+//			//Toast.makeText(mContext, "select device to connect", Toast.LENGTH_SHORT).show();
+//			dis.setCallBack(this);
+//			dis.onStart();
+//			return;
+//		}
+//	}
+
+	public void connectDevice(BluetoothDevice btdevice){
+		final BluetoothDevice device = btdevice;
 		new Thread() {
 			public void run() {
 				connect(device);
 			};
 		}.start();
 	}
-	
+
 	protected void onDestroy() {
-		super.onDestroy();
+//		onDestroy();
 		try {
 			socket.close();
 		} catch (IOException e) {
@@ -120,6 +123,10 @@ public class ClientSocketActivity extends Activity
 		
 			inputStream = socket.getInputStream();														
 			outputStream = socket.getOutputStream();
+
+
+
+			sendEventToService(new EventType(Config.SEND_FROM_BLUETOOTH_CONNECTED_COMPLETE, device.getName()));
 			int read = -1;
 			final byte[] bytes = new byte[2048];
 			for (; (read = inputStream.read(bytes)) > -1;) {
@@ -141,14 +148,19 @@ public class ClientSocketActivity extends Activity
 						Log.d(TAG, ">>inputStream");
 						if(str != null)
 						{		
-							sTextView.setText(str + "<-- " + sbu);
+							//sTextView.setText(str + "<-- " + sbu);
+							Log.d(TAG,str + "<-- " + sbu);
 							str += ("<-- " + sbu.toString());
+
 						}
 						else
 						{
-							sTextView.setText("<-- " + sbu);
+							//sTextView.setText("<-- " + sbu);
+							Log.d(TAG, "<-- " + sbu);
 							str = "<-- " + sbu.toString();
 						}
+						sendEventToService(new EventType(Config.SEND_FROM_BLUETOOTH_CMD, str));
+
 						str += '\n';
 					}
 				}); 
@@ -156,20 +168,54 @@ public class ClientSocketActivity extends Activity
 			
 		} catch (IOException e) {
 			Log.e(TAG, ">>", e);
-			finish();
+
 			return ;
 		} finally {
 			if (socket != null) {
 				try {
 					Log.d(TAG, ">>Client Socket Close");
-					socket.close();	
-					finish();
+					socket.close();
+
 					return ;
 				} catch (IOException e) {
 					Log.e(TAG, ">>", e);
 				}
 			}
 		}
+	}
+
+	//public void sendCmdToEndNode(String thingID, Action action){
+	public void sendCmdToEndNode(String thingID){
+
+			//TODO according thingID decide target , wrap action
+
+		// Test input 1;
+			String tmpStr = "0";
+			byte bytesin[] = tmpStr.getBytes();
+		try {
+			outputStream.write(bytesin);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	@Override
+	public void discoveryDone( List<BluetoothDevice> devices) {
+		//Return to gatewayService , for user.
+
+		//connectDevice(device);
+
+
+		sendEventToService(new EventType(Config.SEND_FROM_BLUETOOTH_DEVICES, devices));
+
+
+	}
+
+	public void sendEventToService(EventType obj){
+		MyEvent event = new MyEvent();
+		event.setMyEventString(obj);
+		mEventBus.post(event);
 	}
 }
 

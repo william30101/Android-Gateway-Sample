@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -219,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
                     case 10:
                         //sendToGatewayThread.start();
 
-                        Runnable run_boarding = new SendToGatewayThread(Config.THING_ONBOARDING);
+                        Runnable run_boarding = new SendToGatewayThread(Config.ENDNODE_ONBOARDING);
                         new Thread(run_boarding).start();
 
                         break;
@@ -386,7 +385,7 @@ public class MainActivity extends AppCompatActivity {
 
 //            switch(mWhichEvent){
 //
-//                case Config.THING_ONBOARDING :
+//                case Config.ENDNODE_ONBOARDING :
 //
 //                    try {
 //                        oos.writeObject(mWhichEvent);
@@ -876,27 +875,27 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                mReceiver, new IntentFilter("action"));
+//        LocalBroadcastManager.getInstance(this).registerReceiver(
+//                mReceiver, new IntentFilter("action"));
         super.onResume();
 
     }
 
     @Override
     protected void onPause() {
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(
-                mReceiver);
+//        LocalBroadcastManager.getInstance(this).unregisterReceiver(
+//                mReceiver);
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Intent serviceIntent = new Intent(MainActivity.this, GatewayService.class);
+        //Intent serviceIntent = new Intent(MainActivity.this, GatewayService.class);
 //        stopService(serviceIntent);
 
-        unbindService(mConnection);
-        stopService(serviceIntent);
+        //unbindService(mConnection);
+        //stopService(serviceIntent);
 
     }
 }

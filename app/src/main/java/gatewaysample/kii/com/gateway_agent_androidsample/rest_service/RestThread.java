@@ -29,7 +29,11 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
+import de.greenrobot.event.EventBus;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyControllerEvent;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
 
 public class RestThread extends ThreadCall implements Runnable {
 
@@ -40,16 +44,18 @@ public class RestThread extends ThreadCall implements Runnable {
     private String mUserName;
     private String mPassWord;
     private String mUrl;
-    private String baseSite = "http://10.0.0.5:8080/";
+    private String baseSite = "http://10.0.0.9:8080/";
     private String onBoardGatewayUrl = baseSite + "gateway-app/gateway/onboarding";
     private ContactActivity myActivity;
+    //private ContactActivity.mShowHandler mHandler;
+    private static EventBus mEventBus;
 
     public RestThread( String url, String userName, String passWord) {
         this.mUrl = url;
         this.mUserName = userName;
         this.mPassWord = passWord;
 
-
+        mEventBus = EventBus.getDefault();
 
     }
 
@@ -60,6 +66,7 @@ public class RestThread extends ThreadCall implements Runnable {
     public void run() {
         if (mContext instanceof ContactActivity){
             myActivity = (ContactActivity) mContext;
+            //mHandler = new ContactActivity.mShowHandler(myActivity);
         }
 
         while(!mStop){
@@ -72,6 +79,7 @@ public class RestThread extends ThreadCall implements Runnable {
             Map<String, String> headers = newHeader();
 
             if (mUrl.contains("onboarding")){ //onboarding endnode.
+
                 IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.POST, headers);
 
                 JSONObject responseBody =  new JSONObject();
@@ -81,8 +89,11 @@ public class RestThread extends ThreadCall implements Runnable {
                     e.printStackTrace();
                 }
 
-                String thingID = responseBody.optString("thingID");
-                Log.i(TAG, "thingID : " + thingID);
+                String endNodeThingID = responseBody.optString("thingID");
+                Log.i(TAG, "thingID : " + endNodeThingID);
+
+                sendEventToController(new EventType(Config.SEND_FROM_ENDNODE_ONBOARD, endNodeThingID));
+
 
             }else if (mUrl.contains("token")){ // include gateway onboarding , and get token.
                 //JsonUtils.newJson(GsonRepository.gson().toJson((actions.get(0).getActionName())));
@@ -108,8 +119,10 @@ public class RestThread extends ThreadCall implements Runnable {
                 Log.i(TAG, "token : " + token);
 
                 //Toast.makeText(mContext, "token : " + token, Toast.LENGTH_LONG).show();
-                Message message = myActivity.mShowHandler.obtainMessage(0,  "token : " + token);
-                message.sendToTarget();
+//                Message message = mHandler.obtainMessage(0,  "token : " + token);
+//                message.sendToTarget();
+                sendEventToController(new EventType(Config.SEND_FROM_GET_TOKEN, token));
+
                 String urlOnBoard = onBoardGatewayUrl;
 
 
@@ -126,8 +139,10 @@ public class RestThread extends ThreadCall implements Runnable {
                 String thingID = responseBody.optString("thingID");
 
 
-                message = myActivity.mShowHandler.obtainMessage(0, "gateway ID : " + thingID);
-                message.sendToTarget();
+//                message = mHandler.obtainMessage(0, "gateway ID : " + thingID);
+//                message.sendToTarget();
+
+                sendEventToController(new EventType(Config.SEND_FROM_GET_GATEWAY_ID, thingID));
 
                 //Toast.makeText(mContext, "gateway ID : " + thingID, Toast.LENGTH_LONG).show();
                 Log.i(TAG, "thingID : " + thingID);
@@ -143,8 +158,10 @@ public class RestThread extends ThreadCall implements Runnable {
 
                 String thingID = responseBody.optString("thingID");
                 //Toast.makeText(mContext, "gateway ID : " + thingID, Toast.LENGTH_LONG).show();
-                Message message = myActivity.mShowHandler.obtainMessage(0, "gateway ID : " + thingID);
-                message.sendToTarget();
+//                Message message = mHandler.obtainMessage(0, "gateway ID : " + thingID);
+//                message.sendToTarget();
+                sendEventToController(new EventType(Config.SEND_FROM_GET_GATEWAY_ID, thingID));
+
                 Log.i(TAG, "thingID : " + thingID);
             }else if (mUrl.contains("pending")){
                 IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.GET, headers);
@@ -156,8 +173,63 @@ public class RestThread extends ThreadCall implements Runnable {
                     e.printStackTrace();
                 }
 
-                Message message = myActivity.mShowHandler.obtainMessage(0, "pending device: " + responseBody);
-                message.sendToTarget();
+//                Message message = mHandler.obtainMessage(2, "pending device: " + responseBody);
+//                message.sendToTarget();
+
+                sendEventToController(new EventType(Config.SEND_FROM_GET_PENDING_DEVICE, responseBody));
+
+//                String thingID = responseBody.optString("thingID");
+//                Log.i(TAG, "thingID : " + thingID);
+            }else if (mUrl.contains("discovery")){
+                IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.GET, headers);
+
+                JSONObject responseBody =  new JSONObject();
+                try {
+                    responseBody = restClient.sendRequest(request);
+                } catch (ThingIFException e) {
+                    e.printStackTrace();
+                }
+
+//                Message message = mHandler.obtainMessage(0, "finding device: " + responseBody);
+//                message.sendToTarget();
+//
+//                //Show dialog
+//                message = mHandler.obtainMessage(1, responseBody);
+//                message.sendToTarget();
+
+                sendEventToController(new EventType(Config.SEND_FROM_DISCOVERY, responseBody));
+
+//                String thingID = responseBody.optString("thingID");
+//                Log.i(TAG, "thingID : " + thingID);
+            }else if (mUrl.contains("connect")){
+                IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.GET, headers);
+
+                JSONObject responseBody =  new JSONObject();
+                try {
+                    responseBody = restClient.sendRequest(request);
+                } catch (ThingIFException e) {
+                    e.printStackTrace();
+                }
+
+//                Message message = mHandler.obtainMessage(0, "connect device: " + responseBody);
+//                message.sendToTarget();
+
+                sendEventToController(new EventType(Config.SEND_FROM_CONNECT_DEVICE, responseBody));
+
+//                String thingID = responseBody.optString("thingID");
+//                Log.i(TAG, "thingID : " + thingID);
+            }else if (mUrl.contains("sendCmd")){
+                IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.GET, headers);
+
+                JSONObject responseBody =  new JSONObject();
+                try {
+                    responseBody = restClient.sendRequest(request);
+                } catch (ThingIFException e) {
+                    e.printStackTrace();
+                }
+
+//                Message message = mHandler.obtainMessage(0, "send cmd ret : " + responseBody);
+//                message.sendToTarget();
 
 //                String thingID = responseBody.optString("thingID");
 //                Log.i(TAG, "thingID : " + thingID);
@@ -192,5 +264,11 @@ public class RestThread extends ThreadCall implements Runnable {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+    }
+
+    public void sendEventToController(EventType obj){
+        MyControllerEvent event = new MyControllerEvent();
+        event.setMyEventString(obj);
+        mEventBus.post(event);
     }
 }

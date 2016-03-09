@@ -21,7 +21,7 @@ public class Config {
     public static final String GATEWAY_USER_PASS = "1qaz@WSX";
 
     // client to server command
-    public static final String THING_ONBOARDING = "thihg_onboarding";
+    public static final String ENDNODE_ONBOARDING = "EndNode Onboarding";
     public static final String LIST_ENDNODE = "list_endNode";
     public static final String REPLACE_GATEWAY = "replace_gateway";
     public static final String REPLACE_ENDNODE = "replace_endnode";
@@ -40,5 +40,17 @@ public class Config {
 
     // Converter
     public static final String SEARCH_ENDNODE = "Search EndNode";
+
+    // EventBus type
+    public static final String SEND_FROM_BLUETOOTH_DEVICES = "Bluetooth Devices";
+    public static final String SEND_FROM_BLUETOOTH_CONNECTED_COMPLETE = "Bluetooth Connect Complete";
+    public static final String SEND_FROM_BLUETOOTH_CMD = "Bluetooth Cmd";
+    public static final String SEND_FROM_GET_TOKEN = "Get token";
+    public static final String SEND_FROM_GET_GATEWAY_ID= "Gateway ID";
+    public static final String SEND_FROM_GET_PENDING_DEVICE = "Pending Device";
+    public static final String SEND_FROM_DISCOVERY = "Discovery Device";
+    public static final String SEND_FROM_CONNECT_DEVICE = "Connect Device";
+    public static final String SEND_FROM_ENDNODE_ONBOARD = "endNode onboard";
+
 
 }

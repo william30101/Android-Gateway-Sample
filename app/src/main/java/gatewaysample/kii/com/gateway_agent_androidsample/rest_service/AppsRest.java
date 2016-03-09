@@ -1,6 +1,7 @@
 package gatewaysample.kii.com.gateway_agent_androidsample.rest_service;
 
 
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Base64;
@@ -67,14 +68,14 @@ public class AppsRest extends ServerResource implements IBookService {
             switch(method1){
                 case "onboarding":
 
-                    String endNodeID = "";
+                    String endNodeThingID = "";
                     if (mGatewayService != null){
-                        endNodeID = mGatewayService.onBoardEndNode();
+                        endNodeThingID = mGatewayService.onBoardEndNode(method2);
                     }
 
-                    Log.i(TAG," thing ID : " + endNodeID);
+                    Log.i(TAG," thing ID : " + endNodeThingID);
                     try {
-                        responseBody.put("thingID",endNodeID);
+                        responseBody.put("thingID",endNodeThingID);
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
@@ -125,6 +126,65 @@ public class AppsRest extends ServerResource implements IBookService {
                             String arr[] = method2.split(":",-1);
                             if (arr.length >= 2){
                                 ret = mGatewayService.onBoardSuccess(arr[1]);
+                            }
+
+
+                        }
+
+                        try {
+                            responseBody.put("pendingEndNodes",ret);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }else if (method2.contains("discovery")){
+                        String ret= "";
+                        if (mGatewayService != null){
+                            List<BluetoothDevice> devices = mGatewayService.discoveryEndNodes();
+
+                            JSONArray endNodesArr = new JSONArray();
+                            for (int i=0; i < devices.size(); i++){
+                                JSONObject endNodeObj = new JSONObject();
+                                try {
+                                    endNodeObj.put("name", devices.get(i).getName());
+                                    endNodeObj.put("address", devices.get(i).getAddress());
+                                    endNodesArr.put(endNodeObj);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+
+
+                            try {
+                                responseBody.put("devices",endNodesArr);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+
+                    }else if (method2.contains("connect")){
+                        String ret= "";
+                        if (mGatewayService != null){
+                            String arr[] = method2.split(":",-1);
+                            if (arr.length >= 2){
+                                mGatewayService.connectEndNode(arr[1]);
+                            }
+
+
+                        }
+
+                        try {
+                            responseBody.put("pendingEndNodes",ret);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }else if (method2.contains("sendCmd")){
+                        String ret= "";
+                        if (mGatewayService != null){
+                            String arr[] = method2.split(":",-1);
+                            if (arr.length >= 2){
+                                mGatewayService.connectEndNode(arr[1]);
                             }
 
 

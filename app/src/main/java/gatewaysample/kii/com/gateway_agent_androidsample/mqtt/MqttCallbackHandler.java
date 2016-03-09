@@ -21,6 +21,7 @@ import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONObject;
 
+import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
 import gatewaysample.kii.com.gateway_agent_androidsample.R;
 import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.Connection.ConnectionStatus;
 
@@ -31,6 +32,7 @@ import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.Connection.Connect
 public class MqttCallbackHandler implements MqttCallback {
 
   private final String TAG = "MqttCallbackHandler";
+  GatewayService gatewayService;
 
   /** {@link Context} for the application used to format and import external strings**/
   private Context context;
@@ -115,9 +117,13 @@ public class MqttCallbackHandler implements MqttCallback {
 
     //notify the user
     Notify.notifcation(context, context.getString(R.string.notification, notifyArgs), intent, R.string.notifyTitle);
-//
-//    //update client history
-//    c.addAction(messageString);
+
+    if(context instanceof GatewayService){
+      gatewayService = (GatewayService)context;
+      gatewayService.mqttMsg(jsonObj);
+    }
+
+
 
   }
 

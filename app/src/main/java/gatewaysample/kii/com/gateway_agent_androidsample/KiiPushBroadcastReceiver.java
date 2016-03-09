@@ -13,9 +13,6 @@ import com.kii.cloud.storage.PushToAppMessage;
 import com.kii.cloud.storage.PushToUserMessage;
 import com.kii.cloud.storage.ReceivedMessage;
 
-/**
- * Created by mac on 2/3/16.
- */
 public class KiiPushBroadcastReceiver extends BroadcastReceiver {
 
     @Override
