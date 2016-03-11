@@ -40,6 +40,7 @@ public class Config {
 
     // Converter
     public static final String SEARCH_ENDNODE = "Search EndNode";
+    public static final int READ_ENDNODE_TIME = 500;
 
     // EventBus type
     public static final String SEND_FROM_BLUETOOTH_DEVICES = "Bluetooth Devices";

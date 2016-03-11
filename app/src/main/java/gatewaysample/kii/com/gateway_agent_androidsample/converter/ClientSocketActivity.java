@@ -24,14 +24,17 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import de.greenrobot.event.EventBus;
+import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
 import gatewaysample.kii.com.gateway_agent_androidsample.R;
 import gatewaysample.kii.com.gateway_agent_androidsample.rest_service.ContactActivity;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
 
 public class ClientSocketActivity implements CallBack
@@ -51,6 +54,10 @@ public class ClientSocketActivity implements CallBack
 	private Context mContext;
 	DiscoveryActivity dis ;
 	private EventBus mEventBus;
+	public static boolean needStop = false;
+	ReadInput readInput;
+	private String inputJson;
+	List<MappingObject> mMappingTable = new ArrayList<>();
 
 	public ClientSocketActivity(Context context){
 		mContext = context;
@@ -97,13 +104,27 @@ public class ClientSocketActivity implements CallBack
 //		}
 //	}
 
-	public void connectDevice(BluetoothDevice btdevice){
+	public void connectDevice(BluetoothDevice btdevice, List<MappingObject> mappingTable){
 		final BluetoothDevice device = btdevice;
-		new Thread() {
-			public void run() {
-				connect(device);
-			};
-		}.start();
+		mMappingTable = mappingTable;
+//
+//		Thread myThraed = new Thread(new Runnable() {
+//			@Override
+//			public void run() {
+//				connect(device);
+//			}
+//		});
+//
+//		myThraed.start();
+		connect(device);
+//		new Thread(new Runnable() {
+//			@Override
+//			public void run() {
+//				connect(device);
+//			}
+//		}).start();
+		//connect(device);
+
 	}
 
 	protected void onDestroy() {
@@ -115,7 +136,8 @@ public class ClientSocketActivity implements CallBack
 			Log.e(TAG, ">>", e);
 		}
 	}
-	
+
+
 	protected void connect(BluetoothDevice device) {
 		//BluetoothSocket socket = null;
 		try {
@@ -128,64 +150,118 @@ public class ClientSocketActivity implements CallBack
 			inputStream = socket.getInputStream();														
 			outputStream = socket.getOutputStream();
 
-
+			//startGetData();
 
 			sendEventToService(new EventType(Config.SEND_FROM_BLUETOOTH_CONNECTED_COMPLETE, device.getName()));
-			int read = -1;
-			final byte[] bytes = new byte[2048];
-			for (; (read = inputStream.read(bytes)) > -1;) {
-				final int count = read;
-				_handler.post(new Runnable() {
-					public void run() {
-						StringBuilder b = new StringBuilder();
-						for (int i = 0; i < count; ++i) {
-							String s = Integer.toString(bytes[i]);
-							b.append(s);
-							b.append(",");
-						}
-						String s = b.toString();
-						String[] chars = s.split(",");
-						sbu = new StringBuffer();
-						 for (int i = 0; i < chars.length; i++) {  
-						        sbu.append((char) Integer.parseInt(chars[i]));
-						    }
-						Log.d(TAG, ">>inputStream");
-						if(str != null)
-						{		
-							//sTextView.setText(str + "<-- " + sbu);
-							Log.d(TAG,str + "<-- " + sbu);
-							str += ("<-- " + sbu.toString());
+			//int read = -1;
+			//final byte[] bytes = new byte[2048];
+			//for (; (read = inputStream.read(bytes)) > -1;) {
 
-						}
-						else
-						{
-							//sTextView.setText("<-- " + sbu);
-							Log.d(TAG, "<-- " + sbu);
-							str = "<-- " + sbu.toString();
-						}
-						sendEventToService(new EventType(Config.SEND_FROM_BLUETOOTH_CMD, str));
+			startGetData(device.getName());
+//			_handler.post(readInput);
 
-						str += '\n';
-					}
-				}); 
-			}
+//				_handler.post(new Runnable() {
+//					int read = -1;
+//					int count = 0;
+//
+//					public void run() {
+//						try {
+//							read = inputStream.read(bytes);
+//
+//							if (read > -1) {
+//								//count = read;
+//
+//								inputJson = new String(bytes);
+//								Log.d(TAG, "read back : " + inputJson);
+//								sendEventToService(new EventType(Config.SEND_FROM_BLUETOOTH_CMD, inputJson));
+//							}
+//
+//						} catch (IOException e) {
+//							e.printStackTrace();
+//						}
+//
+//						_handler.pos
+//
+//
+////						StringBuilder b = new StringBuilder();
+////						for (int i = 0; i < count; ++i) {
+////							String s = Integer.toString(bytes[i]);
+////							b.append(s);
+////							b.append(",");
+////						}
+////						String s = b.toString();
+////						String[] chars = s.split(",");
+////						sbu = new StringBuffer();
+////						 for (int i = 0; i < chars.length; i++) {
+////						        sbu.append((char) Integer.parseInt(chars[i]));
+////						    }
+////						Log.d(TAG, ">>inputStream");
+////						if(str != null)
+////						{
+////							//sTextView.setText(str + "<-- " + sbu);
+////							Log.d(TAG,str + "<-- " + sbu);
+////							str += ("<-- " + sbu.toString());
+////
+////						}
+////						else
+////						{
+////							//sTextView.setText("<-- " + sbu);
+////							Log.d(TAG, "<-- " + sbu);
+////							str = "<-- " + sbu.toString();
+////						}
+//						//sendEventToService(new EventType(Config.SEND_FROM_BLUETOOTH_CMD, inputJson));
+//
+//						//str += '\n';
+//
+//					}
+//				});
+			//}
 			
 		} catch (IOException e) {
 			Log.e(TAG, ">>", e);
 
 			return ;
-		} finally {
-			if (socket != null) {
-				try {
-					Log.d(TAG, ">>Client Socket Close");
-					socket.close();
+		} //finally {
+//			if (socket != null) {
+//				try {
+//					Log.d(TAG, ">>Client Socket Close");
+//					socket.close();
+//
+//					return ;
+//				} catch (IOException e) {
+//					Log.e(TAG, ">>", e);
+//				}
+//			}
+//		}
+	}
 
-					return ;
-				} catch (IOException e) {
-					Log.e(TAG, ">>", e);
+	private void startGetData(String deviceName) {
+		if (socket != null ) {
+			GatewayService gateway;
+			// If device onboard , get thingID from table.
+			String thingID = "";
+			for (int i=0 ; i< mMappingTable.size(); i++){
+				if (mMappingTable.get(i).getVendorThingID().equals(deviceName)){
+					thingID = mMappingTable.get(i).getThingID();
 				}
 			}
+			ReadInput.needStop = false;
+			if (thingID != ""){
+				readInput = new ReadInput(socket, _handler, deviceName, thingID);
+			}else{
+				readInput = new ReadInput(socket, _handler);
+			}
+
+
+			//handler.postDelayed(r, currentSensorList.getCollectFre() * 1000);
+
+		Thread myThraed = new Thread(readInput);
+
+		myThraed.start();
+
+
 		}
+
 	}
 
 	/*
@@ -207,7 +283,10 @@ public class ClientSocketActivity implements CallBack
 
 		// Only get action here.
 		boolean power = false ;
+		String cmdID = "";
 		try {
+			cmdID = msg.optString("commandID");
+
 			JSONArray actionsArr = msg.getJSONArray("actions");
 
 			power = actionsArr.getJSONObject(0).getJSONObject("turnPower").optBoolean("power");

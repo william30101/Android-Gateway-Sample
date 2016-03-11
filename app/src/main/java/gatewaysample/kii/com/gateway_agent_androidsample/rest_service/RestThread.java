@@ -279,10 +279,8 @@ public class RestThread extends ThreadCall implements Runnable {
 //                Log.i(TAG, "thingID : " + thingID);
             }
 
-
-
-
             mStop = true;
+            
         }
 
         if (mStop){

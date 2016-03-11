@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.greenrobot.event.EventBus;
+import gatewaysample.kii.com.gateway_agent_androidsample.converter.BluetoothRetStates;
 import gatewaysample.kii.com.gateway_agent_androidsample.converter.ClientSocketActivity;
 import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.MqttClient;
 import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.LightState;
@@ -61,6 +62,7 @@ import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.KiiThingInfo;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.Util;
 
 
 public class GatewayService extends Service {
@@ -109,6 +111,8 @@ public class GatewayService extends Service {
     // use this flag to notify searchEndNode function search done.
     public static boolean eventTrigger = false;
 
+    public static String commandID = "";
+
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
@@ -152,8 +156,67 @@ public class GatewayService extends Service {
                 }
                 break;
             case Config.SEND_FROM_BLUETOOTH_CMD:
-                String BTretStr = (String) eventType.getBody();
-                Log.d(TAG, "BT ret str : " + BTretStr);
+                final BluetoothRetStates BTret = (BluetoothRetStates) eventType.getBody();
+                Log.d(TAG, "BT ret vendorThingID : " + BTret.getVendorThingID());
+
+                //Get data from EndNode , Should update States.
+                if (gatewayA != null && owner != null) {
+
+
+                    boolean cmdResult = false;
+                        //TODO Doing some data transfer from endNode.
+                    cmdResult = BTret.getBody().has("result");
+
+                    //update cmd action result.
+                    if (cmdResult){
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+
+                                    List<Action> actions = new ArrayList<>();
+
+                                    TurnPower action1 = new TurnPower();
+
+
+                                    SetColor action2 = new SetColor();
+
+
+                                    SetBrightness action3 = new SetBrightness();
+
+
+                                    SetColorTemperature action4 = new SetColorTemperature();
+
+
+                                    actions.add(action1);
+                                    actions.add(action2);
+                                    actions.add(action3);
+                                    actions.add(action4);
+                                    gatewayA.updateCmdResult(BTret.getThingID(), commandID, actions);
+                                } catch (ThingIFException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }).start();
+                    }else{
+                        // else is update states.
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    gatewayA.updateEndNodeStates(BTret.getThingID(), BTret.getBody());
+                                } catch (ThingIFException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }).start();
+                    }
+
+
+
+
+
+                }
                 break;
             case Config.SEND_FROM_BLUETOOTH_CONNECTED_COMPLETE:
 
@@ -223,7 +286,7 @@ public class GatewayService extends Service {
     }
 
     public String onBoardingGateway() {
-        getTID(" on service tid :");
+        Util.getTID(" on service :");
         String thingID = onBoardGateWay();
         //runningGatewayThread.start();
         return thingID;
@@ -273,13 +336,6 @@ public class GatewayService extends Service {
 
         super.onDestroy();
         mEventBus.unregister(this);
-    }
-
-    public void getTID(String msg) {
-        Thread t = Thread.currentThread();
-        long l = t.getId();
-        String name = t.getName();
-        Log.i(TAG, msg + " ID : " + l + " Name : " + name);
     }
 
     Thread socketThread = new Thread(new Runnable() {
@@ -431,7 +487,7 @@ public class GatewayService extends Service {
                                     if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
                                         updateThingID = mappingTable.get(i).getThingID();
                                         try {
-                                            gatewayA.updateEndNodeStates(updateThingID);
+                                            gatewayA.updateEndNodeStates(updateThingID, null);
                                         } catch (ThingIFException e) {
                                             e.printStackTrace();
                                         }
@@ -587,7 +643,7 @@ public class GatewayService extends Service {
             //TODO
             // use JP , gateway API
             synchronized (syncObject) {
-                getTID("login thread ");
+                Util.getTID("login thread ");
                 KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, Site.JP);
                 //KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, "127.0.0.1");
                 GatewayAPIBuilder gatewayBuilder = GatewayAPIBuilder.newBuilder(GatewayService.this, app, "127.0.0.1", "william.wu", "1qaz@WSX");
@@ -698,6 +754,7 @@ public class GatewayService extends Service {
     public void mqttMsg(JSONObject msg) {
         Log.i(TAG, "receive msg :" + msg + " from MQTT");
         String targetThingID = msg.optString("targets");
+        commandID = msg.optString("commandID");
         if (client != null) {
             client.sendCmdToEndNode(msg);
         }
@@ -708,7 +765,7 @@ public class GatewayService extends Service {
         if (deviceName != null && deviceName != "") {
             for (int i = 0; i < devices.size(); i++) {
                 if (devices.get(i).getName().equals(deviceName)) {
-                    client.connectDevice(devices.get(i));
+                    client.connectDevice(devices.get(i), getMappingTable());
                 }
             }
 
