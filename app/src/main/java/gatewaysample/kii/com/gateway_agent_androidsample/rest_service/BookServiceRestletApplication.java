@@ -43,7 +43,8 @@ public class BookServiceRestletApplication extends Application {
         router.attach("token", TokenRest.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("gateway-app/gateway/{method}", GatewayAppRest.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("apps/" + Config.APP_ID + "/gateway/{method1}", AppsRest.class);
-        router.attach("apps/" + Config.APP_ID + "/gateway/{method1}/{method2}", AppsRest.class).setMatchingMode(Template.MODE_STARTS_WITH);
+        router.attach("apps/" + Config.APP_ID + "/gateway/{method1}/{method2}", AppsRest.class);
+        router.attach("apps/" + Config.APP_ID + "/gateway/{method1}/{method2}/{method3}", AppsRest.class);
         router.attach("gateway-info", GatewayInfoRest.class).setMatchingMode(Template.MODE_STARTS_WITH);
 
         return router;

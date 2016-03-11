@@ -13,20 +13,40 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.kii.thingif.MediaTypes;
 import com.kii.thingif.Owner;
+import com.kii.thingif.command.Action;
+import com.kii.thingif.command.Command;
+import com.kii.thingif.exception.ThingIFException;
 import com.kii.thingif.gateway.GatewayAPI4EndNode;
 import com.kii.thingif.gateway.GatewayAPI4Gateway;
+import com.kii.thingif.internal.GsonRepository;
+import com.kii.thingif.internal.http.IoTRestRequest;
+import com.kii.thingif.internal.utils.JsonUtils;
+import com.kii.thingif.internal.utils.Path;
+import com.kii.thingif.schema.Schema;
+import com.kii.thingif.schema.SchemaBuilder;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,16 +56,30 @@ import org.restlet.data.Protocol;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 import de.greenrobot.event.EventBus;
 import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
 import gatewaysample.kii.com.gateway_agent_androidsample.R;
 import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.MqttClient;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.LightState;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetBrightness;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetBrightnessResult;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColor;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorResult;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorTemperature;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorTemperatureResult;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.TurnPower;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.TurnPowerResult;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.ControllCmd;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyControllerEvent;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
 
@@ -56,7 +90,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
     ListView listView;
     private ArrayAdapter<String> listAdapter;
     private String[] list = {Config.REGISTER_CMD, Config.GET_GATEWAY_ID,
-            Config.SEARCH_ENDNODE, Config.GET_PENDING_ENDNODE};
+            Config.SEARCH_ENDNODE, Config.GET_PENDING_ENDNODE, Config.SEND_CMD_TO_ENDNODE};
     private Toolbar toolbar;
     private String accessToken = "jaiwefjia";
     private EditText sEditText;
@@ -83,6 +117,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
     private static Dialog dialog;
 
     private EventBus mEventBus;
+    List<Action> actions = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -241,10 +276,126 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
 
                 break;
+            case Config.SEND_CMD_TO_ENDNODE:
+                // first : get device list from gateway.
+                if (restThread != null) {
+                    if (restThread.getState() == Thread.State.TERMINATED) {
+                        restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/listOnBoardDevice");
+                        restThread.start();
+                    }
+                    if (!restThread.isAlive()) {
+                        restThread.start();
+                    }
+                } else {
+                    restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/listOnBoardDevice");
+                    restThread.start();
+                }
+
+
+                // Second : send cmd to target endNode on eventbus.
+
+                break;
             default:
                 break;
         }
 
+
+    }
+
+    private void createDialog(final String thingID){
+
+        // custom dialog
+        final Dialog dialog = new Dialog(ContactActivity.this);
+        dialog.setContentView(R.layout.cmd_dialog);
+        dialog.setTitle("CMD Dialog");
+
+
+//        LinearLayout ll = (LinearLayout)dialog.findViewById(R.id.cmd_dialog_linear);
+//        ll.getLayoutParams().width=360;
+
+//        // set the custom dialog components - text, image and button
+//        TextView text = (TextView) dialog.findViewById(R.id.text);
+//        text.setText("CMD controll");
+
+    Switch powerSwitch = (Switch) dialog.findViewById(R.id.power_switch);
+        final TurnPower action1 = new TurnPower();
+        powerSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    Log.d(TAG,"power on");
+                    action1.power = true;
+                    //sendCmdFromDialog(thingID);
+
+                } else {
+                    Log.d(TAG,"power off");
+                    action1.power = false;
+                   // sendCmdFromDialog(thingID);
+                }
+            }
+        });
+
+        actions.add(action1);
+
+        //Use simulate data.
+
+        SetColor action2 = new SetColor();
+        action2.color = new int[]{20, 50, 200};
+
+        SetBrightness action3 = new SetBrightness();
+        action3.brightness = 120;
+
+        SetColorTemperature action4 = new SetColorTemperature();
+        action4.colorTemperature = 35;
+
+        actions.add(action2);
+        actions.add(action3);
+        actions.add(action4);
+
+        // end simulate data
+
+
+        Button dialogButton = (Button) dialog.findViewById(R.id.dialogButtonOK);
+        // if button is clicked, close the custom dialog
+        dialogButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //dialog.dismiss();
+                sendCmdFromDialog(thingID);
+            }
+        });
+        Window dialogWindow = dialog.getWindow();
+
+        WindowManager m = getWindowManager();
+        Display d = m.getDefaultDisplay(); // 获取屏幕宽、高用
+        WindowManager.LayoutParams p = dialogWindow.getAttributes(); // 获取对话框当前的参数值
+        p.height = (int) (d.getHeight() * 0.6); // 高度设置为屏幕的0.6
+        p.width = (int) (d.getWidth() * 0.65); // 宽度设置为屏幕的0.65
+        dialogWindow.setAttributes(p);
+
+
+        dialog.show();
+
+    }
+
+    private void sendCmdFromDialog(String thingID){
+
+        //Add each action here.
+
+
+        RestThread.mStop = false;
+        if (restThread != null) {
+            if (restThread.getState() == Thread.State.TERMINATED) {
+                restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/sendCmd/" + thingID, actions);
+                restThread.start();
+            }
+            if (!restThread.isAlive()) {
+                restThread.start();
+            }
+        } else {
+            restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/sendCmd" + thingID, actions);
+            restThread.start();
+        }
 
     }
 
@@ -280,7 +431,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
     }
 
 
-    //Get from RestThread
+    //Get from RestThread , receive information in here.
     public void onEventMainThread(MyControllerEvent event) {
 
         EventType eventType = event.getMyEventString();
@@ -386,7 +537,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
                                             restThread.start();
                                         }
                                     } else {
-                                        restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/connect" + name);
+                                        restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/connect:" + name);
                                         restThread.start();
                                     }
 
@@ -399,51 +550,104 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
                 break;
             case Config.SEND_FROM_CONNECT_DEVICE:
                 break;
+            //When thing onboard done. send cmd to EndNode.
+            case Config.SEND_FROM_GET_ONBOARD_LIST:
+
+
+                List<String> devicesStr = new ArrayList<>();
+                JSONObject devicesJson = (JSONObject) eventType.getBody();
+
+                try {
+                    JSONArray arr = new JSONArray(devicesJson.getString("devices"));
+                    for (int i = 0; i < arr.length(); i++) {
+                        //devicesStr.add(arr.getJSONObject(i).optString("vendorThingID"));
+                        devicesStr.add(arr.getJSONObject(i).optString("thingID"));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                if (devicesStr.size() > 0) {
+                    final List<String> deviceStrFinal = devicesStr;
+                    new AlertDialog.Builder(this)
+                            .setItems(deviceStrFinal.toArray(new String[deviceStrFinal.size()]), new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    String thingID = deviceStrFinal.get(which);
+                                    Toast.makeText(ContactActivity.this, thingID, Toast.LENGTH_SHORT).show();
+
+                                    createDialog(thingID);
+
+//                                    RestThread.mStop = false;
+//                                    if (restThread != null) {
+//                                        if (restThread.getState() == Thread.State.TERMINATED) {
+//                                            restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/sendCmd/" + thingID, getActions());
+//                                            restThread.start();
+//                                        }
+//                                        if (!restThread.isAlive()) {
+//                                            restThread.start();
+//                                        }
+//                                    } else {
+//                                        restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/sendCmd" + thingID, getActions());
+//                                        restThread.start();
+//                                    }
+
+
+                                }
+                            })
+                            .show();
+                }
+
+                break;
             default:
                 break;
         }
 
     }
 
-    public void onButtonClicksend(View view) throws IOException {
+    public void addActions(Action action) {
+       // List<Action> actions = new ArrayList<Action>();
 
-        String sendStr = sEditText.getText().toString();
+//        TurnPower action1 = new TurnPower();
+//
+//        if (Integer.parseInt(sEditText.getText().toString()) >= 1){
+//            action1.power = true;
+//        }else{
+//            action1.power = false;
+//        }
 
-        if (sendStr != null) {
-            Log.d(TAG, ">>send");
-            RestThread.mStop = false;
-            if (restThread != null) {
-                if (restThread.getState() == Thread.State.TERMINATED) {
-                    restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/sendCmd:" + sendStr);
-                    restThread.start();
-                }
-                if (!restThread.isAlive()) {
-                    restThread.start();
-                }
-            } else {
-                restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/sendCmd" + sendStr);
-                restThread.start();
-            }
-        }
 //
-//        if(str != null)
-//        {
-//            Log.d(TAG, ">>second");
-//            sTextView.setText(str + "--> " + sEditText.getText());
-//            str += ("--> " + sEditText.getText().toString());
-//        }
-//        else
-//        {
-//            Log.d(TAG, ">>frist");
-//            sTextView.setText("--> " + sEditText.getText());
-//            str = "--> " + sEditText.getText().toString();
-//        }
-//        str += '\n';
+//        SetColor action2 = new SetColor();
+//        action2.color = new int[]{20, 50, 200};
 //
-//        String tmpStr=sEditText.getText().toString();
-//        byte bytes[] = tmpStr.getBytes();
-//        outputStream.write(bytes);
+//        SetBrightness action3 = new SetBrightness();
+//        action3.brightness = 120;
+//
+//        SetColorTemperature action4 = new SetColorTemperature();
+//        action4.colorTemperature = 35;
+
+        //actions.add(action);
+
+
+
+
+//                    try {
+//                        cmdID = gatewayA.sendCmdToEndNode(updateThingID, Config.SCHEMA_NAME, Config.SCHEMA_VERSION, actions, owner, schema);
+//                    } catch (ThingIFException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    if (cmdID != null){
+//                        mCmdID = cmdID;
+//                        message = cmdID;
+//                    }
+
+
+
+
+
     }
+
 
     @Override
     protected void onDestroy() {
@@ -454,70 +658,5 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
         unbindService(mConnection);
         stopService(serviceIntent);
 
-    }
-
-    class MappingObject {
-        String position;
-        String thingID;
-        String vendorThingID;
-        String accessToken;
-        String ownerID;
-
-        /***
-         * use this class for mapping file .
-         *
-         * @param position      Gateway or EndNode
-         * @param thingID       return ID from REST API
-         * @param vendorThingID vendorThingID from onBoarding.
-         * @param accessToken   owner AccessToken
-         * @param ownerID       ownerID
-         */
-        public MappingObject(String position, String thingID, String vendorThingID, String accessToken, String ownerID) {
-            this.position = position;
-            this.thingID = thingID;
-            this.vendorThingID = vendorThingID;
-            this.accessToken = accessToken;
-            this.ownerID = ownerID;
-        }
-
-        public String getPosition() {
-            return position;
-        }
-
-        public String getThingID() {
-            return thingID;
-        }
-
-        public String getVendorThingID() {
-            return vendorThingID;
-        }
-
-        public String getAccessToken() {
-            return accessToken;
-        }
-
-        public String getOwnerID() {
-            return ownerID;
-        }
-
-        public void setPosition(String position) {
-            this.position = position;
-        }
-
-        public void setThingID(String thingID) {
-            this.thingID = thingID;
-        }
-
-        public void setVendorThingID(String vendorThingID) {
-            this.vendorThingID = vendorThingID;
-        }
-
-        public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
-        }
-
-        public void setOwnerID(String ownerID) {
-            this.ownerID = ownerID;
-        }
     }
 }

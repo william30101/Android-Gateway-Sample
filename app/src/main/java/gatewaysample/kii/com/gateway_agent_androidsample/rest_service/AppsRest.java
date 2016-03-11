@@ -26,6 +26,7 @@ import java.util.Set;
 
 import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;
 
 public class AppsRest extends ServerResource implements IBookService {
 
@@ -62,6 +63,7 @@ public class AppsRest extends ServerResource implements IBookService {
         String appId = (String) getRequestAttributes().get("appId");
         String method1 = (String) getRequestAttributes().get("method1");
         String method2 = (String) getRequestAttributes().get("method2");
+        String method3 = (String) getRequestAttributes().get("method3");
         JSONObject responseBody =  new JSONObject();
         Log.i(TAG, "method : " + method1);
 
@@ -180,20 +182,31 @@ public class AppsRest extends ServerResource implements IBookService {
                             e.printStackTrace();
                         }
                     }else if (method2.contains("sendCmd")){
-                        String ret= "";
+                        String thingID = method3;
+
+                    }else if (method2.contains("listOnBoardDevice")){
                         if (mGatewayService != null){
-                            String arr[] = method2.split(":",-1);
-                            if (arr.length >= 2){
-                                mGatewayService.connectEndNode(arr[1]);
+                            List<MappingObject> mappingEndNodes = mGatewayService.getMappingTable();
+
+                            JSONArray endNodesArr = new JSONArray();
+                            for (int i=0; i < mappingEndNodes.size(); i++){
+                                JSONObject endNodeObj = new JSONObject();
+                                try {
+                                    endNodeObj.put("thingID", mappingEndNodes.get(i).getThingID());
+                                    endNodeObj.put("vendorThingID", mappingEndNodes.get(i).getVendorThingID());
+                                    endNodesArr.put(endNodeObj);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+
                             }
 
+                            try {
+                                responseBody.put("devices",endNodesArr);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
 
-                        }
-
-                        try {
-                            responseBody.put("pendingEndNodes",ret);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
                         }
                     }
 

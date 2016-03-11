@@ -4,6 +4,7 @@ package gatewaysample.kii.com.gateway_agent_androidsample.rest_service;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
@@ -15,22 +16,41 @@ import com.kii.thingif.MediaTypes;
 import com.kii.thingif.Owner;
 import com.kii.thingif.Site;
 import com.kii.thingif.TypedID;
+import com.kii.thingif.command.Action;
+import com.kii.thingif.command.Command;
 import com.kii.thingif.exception.ThingIFException;
 import com.kii.thingif.gateway.GatewayAPI4Gateway;
 import com.kii.thingif.gateway.GatewayAPIBuilder;
+import com.kii.thingif.internal.GsonRepository;
 import com.kii.thingif.internal.http.IoTRestClient;
 import com.kii.thingif.internal.http.IoTRestRequest;
+import com.kii.thingif.internal.utils.JsonUtils;
+import com.kii.thingif.internal.utils.Path;
+import com.kii.thingif.schema.Schema;
+import com.kii.thingif.schema.SchemaBuilder;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.text.MessageFormat;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import de.greenrobot.event.EventBus;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.LightState;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetBrightness;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetBrightnessResult;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColor;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorResult;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorTemperature;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorTemperatureResult;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.TurnPower;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.TurnPowerResult;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.ControllCmd;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyControllerEvent;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
@@ -49,6 +69,7 @@ public class RestThread extends ThreadCall implements Runnable {
     private ContactActivity myActivity;
     //private ContactActivity.mShowHandler mHandler;
     private static EventBus mEventBus;
+    private List<Action> mActions;
 
     public RestThread( String url, String userName, String passWord) {
         this.mUrl = url;
@@ -63,6 +84,11 @@ public class RestThread extends ThreadCall implements Runnable {
         this.mUrl = url;
     }
 
+    public RestThread(String url, List<Action> actions) {
+        this.mUrl = url;
+        this.mActions = actions;
+    }
+
     public void run() {
         if (mContext instanceof ContactActivity){
             myActivity = (ContactActivity) mContext;
@@ -71,6 +97,7 @@ public class RestThread extends ThreadCall implements Runnable {
 
         while(!mStop){
             initCredential();
+
             //String path = "http://10.0.0.5:8080/token";
             //String path = "http://10.0.0.5:8080/gateway-app/gateway/onboarding";
 
@@ -98,6 +125,10 @@ public class RestThread extends ThreadCall implements Runnable {
             }else if (mUrl.contains("token")){ // include gateway onboarding , and get token.
                 //JsonUtils.newJson(GsonRepository.gson().toJson((actions.get(0).getActionName())));
                 JSONObject requestBody = new JSONObject();
+
+                //register on app side for sendCmd Start.
+                login(mUserName, mPassWord);
+                //register on app side for sendCmd End.
 
                 try {
                     requestBody.put("username", mUserName);
@@ -218,12 +249,25 @@ public class RestThread extends ThreadCall implements Runnable {
 
 //                String thingID = responseBody.optString("thingID");
 //                Log.i(TAG, "thingID : " + thingID);
-            }else if (mUrl.contains("sendCmd")){
+            }else if (mUrl.contains("listOnBoardDevice")){
                 IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.GET, headers);
 
                 JSONObject responseBody =  new JSONObject();
                 try {
                     responseBody = restClient.sendRequest(request);
+                } catch (ThingIFException e) {
+                    e.printStackTrace();
+                }
+
+//                Message message = mHandler.obtainMessage(0, "connect device: " + responseBody);
+//                message.sendToTarget();
+
+                sendEventToController(new EventType(Config.SEND_FROM_GET_ONBOARD_LIST, responseBody));
+            } else if (mUrl.contains("sendCmd")){
+                String thingID = mUrl.substring(mUrl.lastIndexOf('/') + 1);
+                ControllCmd cmd = new ControllCmd(thingID, Config.SCHEMA_NAME, Config.SCHEMA_VERSION, mActions, owner, buildSchema());
+                try {
+                    sendCmdToEndNode(cmd);
                 } catch (ThingIFException e) {
                     e.printStackTrace();
                 }
@@ -256,6 +300,12 @@ public class RestThread extends ThreadCall implements Runnable {
         return headers;
     }
 
+    protected Map<String, String> newHeaderRemote() {
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + accessToken);
+        return headers;
+    }
+
     private void initCredential(){
         String accessTokenStr = Config.APP_ID + ":" + Config.APP_KEY;
         try {
@@ -270,5 +320,40 @@ public class RestThread extends ThreadCall implements Runnable {
         MyControllerEvent event = new MyControllerEvent();
         event.setMyEventString(obj);
         mEventBus.post(event);
+    }
+
+    //We send remote controll cmd .
+    public String sendCmdToEndNode( ControllCmd cmd) throws ThingIFException {
+
+        String path = MessageFormat.format("/thing-if/apps/{0}/targets/thing:{1}/commands", Config.APP_ID, cmd.getThingID());
+        String url = Path.combine(Config.IOTAPPBASEURL, path);
+        Map<String, String> headers = this.newHeaderRemote();
+
+
+        Command command = new Command(cmd.getSchemaName(), cmd.getSchemaVersion(), owner.getTypedID(), cmd.getActions());
+        JSONObject requestBody = JsonUtils.newJson(GsonRepository.gson(cmd.getSchema()).toJson(command));
+
+
+        IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.POST, headers, MediaTypes.MEDIA_TYPE_JSON, requestBody);
+
+        JSONObject responseBody = this.restClient.sendRequest(request);
+
+        String cmdID = responseBody.optString("commandID");
+
+        Log.i(TAG, "cmd ID : " + cmdID);
+
+        return cmdID;
+
+    }
+
+    public Schema buildSchema() {
+        SchemaBuilder schemaBuilder = SchemaBuilder.newSchemaBuilder(Config.THING_TYPE,
+                Config.SCHEMA_NAME, Config.SCHEMA_VERSION, LightState.class);
+        schemaBuilder.addActionClass(TurnPower.class, TurnPowerResult.class);
+        schemaBuilder.addActionClass(SetBrightness.class, SetBrightnessResult.class);
+        schemaBuilder.addActionClass(SetColor.class, SetColorResult.class);
+        schemaBuilder.addActionClass(SetColorTemperature.class, SetColorTemperatureResult.class);
+
+        return schemaBuilder.build();
     }
 }

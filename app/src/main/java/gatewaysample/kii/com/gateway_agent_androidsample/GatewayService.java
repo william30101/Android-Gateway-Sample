@@ -59,6 +59,7 @@ import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.TurnPo
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.KiiThingInfo;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
 
 
@@ -155,6 +156,7 @@ public class GatewayService extends Service {
                 Log.d(TAG, "BT ret str : " + BTretStr);
                 break;
             case Config.SEND_FROM_BLUETOOTH_CONNECTED_COMPLETE:
+
                 String devieName = (String) eventType.getBody();
                 Log.d(TAG, "BT name str : " + devieName);
 
@@ -280,6 +282,402 @@ public class GatewayService extends Service {
         Log.i(TAG, msg + " ID : " + l + " Name : " + name);
     }
 
+    Thread socketThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+
+            try {
+                server = new ServerSocket(port);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            while (!cancelled) {
+
+                Log.i(TAG, "Waiting for client request");
+                //creating socket and waiting for client connection
+                Socket socket = null;
+                //read from socket to ObjectInputStream object
+                ObjectInputStream ois = null;
+                //convert ObjectInputStream object to String
+                String message = null;
+                try {
+                    socket = server.accept();
+                    ois = new ObjectInputStream(socket.getInputStream());
+                    message = (String) ois.readObject();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+                Log.i(TAG, "Message Received: " + message);
+                String updateThingID = null;
+                if (gatewayA != null && owner != null) {
+                    switch (message) {
+                        case Config.ENDNODE_ONBOARDING:
+
+                            try {
+
+                                Log.i(TAG, "onBoardThread running");
+
+
+                                updateThingID = gatewayEnd.onboardEndNode(EndNodeVendorThingID, EndNodePassword, GatewayVendorThingID, owner.getTypedID().toString(), null, "endNodeType");
+                                //Save to mapping file
+                                if (updateThingID != null) {
+//                                        writeToMappingFile("EndNode " + endNodeThingID + " " + EndNodeVendorThingID + " "
+//                                                + owner.getAccessToken() + " " + owner.getTypedID().toString());
+
+                                    replaceMappingTable(new MappingObject("EndNode", updateThingID, EndNodeVendorThingID,
+                                            owner.getAccessToken(), owner.getTypedID().toString(), true, true));
+
+                                }
+
+
+                            } catch (ThingIFException e) {
+                                e.printStackTrace();
+                            }
+
+                            break;
+                        case Config.LIST_ENDNODE:
+
+                            Log.i(TAG, "list endNode running");
+
+
+                            List<EndNode> allEndNode = null;
+                            try {
+                                allEndNode = gatewayA.listAllEndNode(0, null);
+                            } catch (ThingIFException e) {
+                                e.printStackTrace();
+                            }
+                            //Save to mapping file
+                            if (allEndNode.size() > 0) {
+                                for (int i = 0; i < allEndNode.size(); i++) {
+                                    Log.i(TAG, "endNode vendor thing ID is : " + allEndNode.get(i).getVendorThingID());
+                                }
+
+
+                            }
+
+                            break;
+                        case Config.REPLACE_ENDNODE:
+
+                            Log.i(TAG, "replace endNode running");
+
+                            for (int i = 0; i < mappingTable.size(); i++) {
+                                Log.i(TAG, "endNode vendor thing ID is : " + mappingTable.get(i).getVendorThingID());
+                                if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
+                                    updateThingID = mappingTable.get(i).getThingID();
+                                }
+                            }
+
+                            if (updateThingID != null) {
+                                try {
+                                    String retEndNodeID = gatewayA.replaceEndNode(updateThingID, replaceEndNodeVendorThingID, replaceEndNodePassword);
+
+
+                                    replaceMappingTableWithOriginalVendorThingID(new MappingObject("EndNode", retEndNodeID, replaceEndNodeVendorThingID,
+                                            owner.getAccessToken(), owner.getTypedID().toString(), true, true), EndNodeVendorThingID);
+                                } catch (ThingIFException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+
+                            break;
+                        case Config.READ_MAPPING_FILE:
+                            readMappingFile();
+                            break;
+                        case Config.DEL_ENDNODE:
+
+                            if (mappingTable.size() > 0) {
+                                for (int i = 0; i < mappingTable.size(); i++) {
+                                    if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
+                                        updateThingID = mappingTable.get(i).getThingID();
+                                        try {
+                                            gatewayA.delEndNode(updateThingID);
+                                        } catch (ThingIFException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                        delteMappingTableWithVendorThingID(EndNodeVendorThingID);
+                                    }
+                                }
+                            }
+
+                            break;
+                        case Config.UPDATE_ENDNODE_CONNECTION_STATUS:
+
+                            if (mappingTable.size() > 0) {
+                                for (int i = 0; i < mappingTable.size(); i++) {
+                                    if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
+                                        updateThingID = mappingTable.get(i).getThingID();
+                                        try {
+                                            gatewayA.updateEndNodeConnectionStatus(updateThingID, true);
+                                        } catch (ThingIFException e) {
+                                            e.printStackTrace();
+                                        }
+
+
+                                    }
+                                }
+                            }
+                            break;
+
+                        case Config.UPDATE_ENDNODE_STATES:
+
+                            if (mappingTable.size() > 0) {
+                                for (int i = 0; i < mappingTable.size(); i++) {
+                                    if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
+                                        updateThingID = mappingTable.get(i).getThingID();
+                                        try {
+                                            gatewayA.updateEndNodeStates(updateThingID);
+                                        } catch (ThingIFException e) {
+                                            e.printStackTrace();
+                                        }
+
+
+                                    }
+                                }
+                            }
+                            break;
+
+                        case Config.GET_ENDNODE_STATES:
+
+                            if (mappingTable.size() > 0) {
+                                for (int i = 0; i < mappingTable.size(); i++) {
+                                    if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
+                                        updateThingID = mappingTable.get(i).getThingID();
+                                        try {
+                                            gatewayA.getEndNodeStates(updateThingID);
+                                        } catch (ThingIFException e) {
+                                            e.printStackTrace();
+                                        }
+
+
+                                    }
+                                }
+                            }
+                            break;
+                        case Config.SEND_CMD_TO_ENDNODE:
+
+                            if (mappingTable.size() > 0) {
+                                for (int i = 0; i < mappingTable.size(); i++) {
+                                    if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
+                                        updateThingID = mappingTable.get(i).getThingID();
+
+                                        Schema schema = buildSchema();
+
+                                        List<Action> actions = new ArrayList<Action>();
+
+                                        TurnPower action1 = new TurnPower();
+                                        action1.power = true;
+
+                                        SetColor action2 = new SetColor();
+                                        action2.color = new int[]{20, 50, 200};
+
+                                        SetBrightness action3 = new SetBrightness();
+                                        action3.brightness = 120;
+
+                                        SetColorTemperature action4 = new SetColorTemperature();
+                                        action4.colorTemperature = 35;
+
+                                        actions.add(action1);
+                                        actions.add(action2);
+                                        actions.add(action3);
+                                        actions.add(action4);
+                                        String cmdID = null;
+                                        try {
+                                            cmdID = gatewayA.sendCmdToEndNode(updateThingID, Config.SCHEMA_NAME, Config.SCHEMA_VERSION, actions, owner, schema);
+                                        } catch (ThingIFException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                        if (cmdID != null) {
+                                            mCmdID = cmdID;
+                                            message = cmdID;
+                                        }
+
+                                    }
+                                }
+                            }
+                            break;
+
+                        case Config.UPDATE_CMD_RESULT:
+
+                            if (mappingTable.size() > 0) {
+                                for (int i = 0; i < mappingTable.size(); i++) {
+                                    if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
+                                        updateThingID = mappingTable.get(i).getThingID();
+
+                                        Schema schema = buildSchema();
+
+                                        List<Action> actions = new ArrayList<>();
+
+                                        TurnPower action1 = new TurnPower();
+
+
+                                        SetColor action2 = new SetColor();
+
+
+                                        SetBrightness action3 = new SetBrightness();
+
+
+                                        SetColorTemperature action4 = new SetColorTemperature();
+
+
+                                        actions.add(action1);
+                                        actions.add(action2);
+                                        actions.add(action3);
+                                        actions.add(action4);
+                                        try {
+                                            if (mCmdID != null) {
+                                                gatewayA.updateCmdResult(updateThingID, mCmdID, actions);
+
+                                            }
+                                        } catch (ThingIFException e) {
+                                            e.printStackTrace();
+                                        }
+
+
+                                    }
+                                }
+                            }
+                            break;
+
+                        default:
+                            Log.i(TAG, "No Support event here");
+                            break;
+                    }
+                } else {
+                    Log.i(TAG, " login first");
+                }
+
+                //create ObjectOutputStream object
+                ObjectOutputStream oos = null;
+                try {
+                    oos = new ObjectOutputStream(socket.getOutputStream());
+                    //write object to Socket
+                    oos.writeObject("Hi Client " + message);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                //close resources
+                try {
+                    ois.close();
+                    oos.close();
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                //terminate the server if client sends exit request
+                if (message.equalsIgnoreCase("exit")) {
+                    cancelled = true;
+                }
+            }
+
+
+        }
+    });
+
+    Thread loginThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            //TODO
+            // use JP , gateway API
+            synchronized (syncObject) {
+                getTID("login thread ");
+                KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, Site.JP);
+                //KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, "127.0.0.1");
+                GatewayAPIBuilder gatewayBuilder = GatewayAPIBuilder.newBuilder(GatewayService.this, app, "127.0.0.1", "william.wu", "1qaz@WSX");
+                try {
+                    gatewayA = gatewayBuilder.build4Gateway();
+                    gatewayEnd = gatewayBuilder.build4EndNode();
+
+                } catch (ThingIFException e) {
+                    e.printStackTrace();
+                }
+
+                // sign in user
+                final GatewayAPI4Gateway finalGatewayA = gatewayA;
+
+
+                try {
+                    KiiUser user = KiiUser.logIn(Config.GATEWAY_USERNAME, Config.GATEWAY_USER_PASS);
+                    String accessToken = user.getAccessToken();
+
+                    // Get the access token by getAccessTokenBundle
+                    Bundle b = user.getAccessTokenBundle();
+                    accessToken = b.getString("access_token");
+
+                    TypedID typedUserID = new TypedID(TypedID.Types.USER, user.getID());
+                    owner = new Owner(typedUserID, accessToken);
+
+                    // Securely store the access token in persistent storage
+                    // (assuming that your application implements this function)
+                    if (finalGatewayA != null) {
+                        finalGatewayA.setAccessToken(accessToken);
+                        gatewayEnd.setAccessToken(accessToken);
+                        syncObject.notify();
+                    }
+
+
+                } catch (IOException e) {
+                    // Sign-in failed for some reasons
+                    // Please check IOExecption to see what went wrong...
+                } catch (AppException e) {
+                    // Sign-in failed for some reasons
+                    // Please check AppException to see what went wrong...
+                }
+
+            }
+        }
+    });
+
+
+    public void sendCmdToEndNode() {
+//        if (mappingTable.size() > 0) {
+//            for (int i=0; i< mappingTable.size(); i++){
+//                if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)){
+//                    String updateThingID = mappingTable.get(i).getThingID();
+//
+//                    Schema schema = buildSchema();
+//
+//                    List<Action> actions = new ArrayList<Action>();
+//
+//                    TurnPower action1 = new TurnPower();
+//                    action1.power = true;
+//
+//                    SetColor action2 = new SetColor();
+//                    action2.color = new int[]{20,50,200};
+//
+//                    SetBrightness action3 = new SetBrightness();
+//                    action3.brightness = 120;
+//
+//                    SetColorTemperature action4 = new SetColorTemperature();
+//                    action4.colorTemperature = 35;
+//
+//                    actions.add(action1);
+//                    actions.add(action2);
+//                    actions.add(action3);
+//                    actions.add(action4);
+//                    String cmdID = null;
+//                    try {
+//                        cmdID = gatewayA.sendCmdToEndNode(updateThingID, Config.SCHEMA_NAME, Config.SCHEMA_VERSION, actions, owner, schema);
+//                    } catch (ThingIFException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    if (cmdID != null){
+//                        mCmdID = cmdID;
+//                        message = cmdID;
+//                    }
+//
+//                }
+//            }
+    }
+
     public String getGatewayID() {
         String thingID = "";
 
@@ -301,7 +699,7 @@ public class GatewayService extends Service {
         Log.i(TAG, "receive msg :" + msg + " from MQTT");
         String targetThingID = msg.optString("targets");
         if (client != null) {
-            client.sendCmdToEndNode(targetThingID);
+            client.sendCmdToEndNode(msg);
         }
 
     }
@@ -471,6 +869,10 @@ public class GatewayService extends Service {
 
     }
 
+    public List<MappingObject> getMappingTable() {
+        return mappingTable;
+    }
+
     public String onBoardSuccess(String vendorThingID) {
         String retStr = "END_NODE_NOT_FOUND";
         if (gatewayA != null && owner != null) {
@@ -514,6 +916,49 @@ public class GatewayService extends Service {
         }
         return thingInfo;
     }
+
+    Thread onBoardThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            // finalGatewayA.login("VENDOR_THING_ID:gatewaytest2", "123456");
+            synchronized (syncObject) {
+                if (gatewayA != null && owner != null) {
+                    try {
+                        //getTID("onBoardThread ");
+                        Log.i(TAG, "onBoardThread running");
+                        String gatewayThingID = gatewayA.onboardGateway(GatewayVendorThingID, GatewayPassword, "led", null, owner.getTypedID().toString());
+
+                        if (gatewayThingID != null) {
+                            mappingTable.clear();
+                            mappingTable.add(new MappingObject("Gateway", gatewayThingID, GatewayVendorThingID,
+                                    owner.getAccessToken(), owner.getTypedID().toString(), true, false));
+                            //WriteSharedPreferences("gatewayThingID", gatewayThingID);
+
+                            List<EndNode> endNodes = getEndNodeList();
+                            if (endNodes != null) {
+                                for (int i = 0; i < endNodes.size(); i++) {
+                                    mappingTable.add(i, new MappingObject("EndNode", endNodes.get(i).getThingID(),
+                                            endNodes.get(i).getVendorThingID(), owner.getAccessToken(), owner.getTypedID().toString(), false, false));
+                                }
+                            }
+
+                            newMappingFile(mappingTable);
+
+                            //MQTT receive connections established.
+                            mqttClient = new MqttClient(GatewayService.this, gatewayA.getmGateway().getMqttEndpoint());
+                            mqttClient.connect();
+                        }
+
+                    } catch (ThingIFException e) {
+                        e.printStackTrace();
+                    }
+
+                    syncObject.notify();
+                }
+            }
+
+        }
+    });
 
     private void readMappingFile() {
         if (fileExists(this, Config.MAPPING_FILE_NAME)) {
@@ -801,87 +1246,5 @@ public class GatewayService extends Service {
     }
 
 
-    class MappingObject {
-        String position;
-        String thingID;
-        String vendorThingID;
-        String accessToken;
-        String ownerID;
-        boolean isRegister;
-        boolean isOnline;
-
-        /***
-         * use this class for mapping file .
-         *
-         * @param position      Gateway or EndNode
-         * @param thingID       return ID from REST API
-         * @param vendorThingID vendorThingID from onBoarding.
-         * @param accessToken   owner AccessToken
-         * @param ownerID       ownerID
-         */
-        public MappingObject(String position, String thingID, String vendorThingID, String accessToken, String ownerID, boolean isOnline, boolean isRegister) {
-            this.position = position;
-            this.thingID = thingID;
-            this.vendorThingID = vendorThingID;
-            this.accessToken = accessToken;
-            this.ownerID = ownerID;
-            this.isOnline = isOnline;
-            this.isRegister = isRegister;
-        }
-
-        public String getPosition() {
-            return position;
-        }
-
-        public String getThingID() {
-            return thingID;
-        }
-
-        public String getVendorThingID() {
-            return vendorThingID;
-        }
-
-        public String getAccessToken() {
-            return accessToken;
-        }
-
-        public String getOwnerID() {
-            return ownerID;
-        }
-
-        public void setPosition(String position) {
-            this.position = position;
-        }
-
-        public void setThingID(String thingID) {
-            this.thingID = thingID;
-        }
-
-        public void setVendorThingID(String vendorThingID) {
-            this.vendorThingID = vendorThingID;
-        }
-
-        public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
-        }
-
-        public boolean isRegister() {
-            return isRegister;
-        }
-
-        public void setIsRegister(boolean isRegister) {
-            this.isRegister = isRegister;
-        }
-
-        public void setOwnerID(String ownerID) {
-            this.ownerID = ownerID;
-        }
-
-        public boolean isOnline() {
-            return isOnline;
-        }
-
-
-    }
 
 }

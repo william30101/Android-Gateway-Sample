@@ -17,6 +17,10 @@ import android.widget.Toast;
 
 import com.kii.thingif.command.Action;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -184,13 +188,49 @@ public class ClientSocketActivity implements CallBack
 		}
 	}
 
-	//public void sendCmdToEndNode(String thingID, Action action){
-	public void sendCmdToEndNode(String thingID){
+	/*
+	*
+	* JSON string : {"schema":"Smart-Light-Demo",
+	* 				 "schemaVersion":1,
+	* 				 "type":"GATEWAY_ENVELOPED",
+	* 				 "commandID":"59040aa0-e5d5-11e5-86af-22000b02f3b7",
+	* 				 "actions":[{"turnPower":{"power":true}},{"setColor":{"color":[20,50,200]}},{"setBrightness":{"brightness":120}},{"setColorTemperature":{"colorTemperature":35}}],
+	* 				 "targets":["THING:th.727f20b00022-69c9-5e11-1c5e-093713a0"],
+	* 				 "issuer":"user:2be88ba00022-12b8-5e11-1f0c-01266af7"}
+	* */
 
-			//TODO according thingID decide target , wrap action
+	// msg including schema and actions.
+	public void sendCmdToEndNode(JSONObject msg){
 
-		// Test input 1;
+
+		//TODO according thingID decide target , wrap action
+
+		// Only get action here.
+		boolean power = false ;
+		try {
+			JSONArray actionsArr = msg.getJSONArray("actions");
+
+			power = actionsArr.getJSONObject(0).getJSONObject("turnPower").optBoolean("power");
+			JSONArray color = actionsArr.getJSONObject(1).getJSONObject("setColor").getJSONArray("color");
+			int colors[] = new int[3];
+			for (int i=0 ; i< color.length(); i++){
+				colors[i] = (int)color.get(i);
+			}
+			Log.i(TAG,"power : " + power +  " setColor : " + color.get(0).toString());
+
+
+
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+		// Use power attribute for test.
 			String tmpStr = "0";
+		if (power)
+			tmpStr = "1";
+		else
+			tmpStr = "0";
+
 			byte bytesin[] = tmpStr.getBytes();
 		try {
 			outputStream.write(bytesin);

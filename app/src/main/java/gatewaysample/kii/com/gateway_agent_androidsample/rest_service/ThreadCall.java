@@ -28,6 +28,7 @@ import java.util.List;
 
 import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.MqttClient;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;
 
 
 public class ThreadCall extends Thread{
@@ -52,6 +53,7 @@ public class ThreadCall extends Thread{
 
     static Context mContext;
     static boolean mStop;
+    static String accessToken;
 
     ThreadCall(Context context){
         mContext = context;
@@ -65,93 +67,6 @@ public class ThreadCall extends Thread{
         return mContext;
     }
 
-
-
-    public void mappingInit(){
-        //listThingsUnderGateway(gatewayApi);
-        //getEndNodeList();
-        mappingAllRestore();
-    }
-
-    private void mappingAllRestore(){
-
-        if (fileExists(mContext, Config.MAPPING_FILE_NAME)){
-            // TODO
-            // restore endNode list
-            FileInputStream fin = null;
-            BufferedReader reader;
-//
-//            String gatewayID = ReadSharedPreferences("gatewayThingID");
-//            Log.i(TAG, " gateway ID : " + gatewayID);
-
-            try {
-                fin = mContext.openFileInput(Config.MAPPING_FILE_NAME);
-
-                reader = new BufferedReader(new InputStreamReader(fin));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    //arr[0] should be name , arr[1] be thingID
-                    if (line.length() > 0){
-                        String arr[] = line.split(" ",-1);
-                        MappingObject obj = new MappingObject(arr[0], arr[1], arr[2], arr[3], arr[4]);
-                        mappingTable.add(obj);
-                    }
-                }
-
-                for(int i=0; i< mappingTable.size(); i++){
-                    Log.i(TAG, "position : " + mappingTable.get(i).getPosition() +
-                            " ThingID: " + mappingTable.get(i).getThingID() +
-                            " VendorThingID: " + mappingTable.get(i).getVendorThingID() +
-                            " AccessToken: " + mappingTable.get(i).getAccessToken() +
-                            " ownerID: " + mappingTable.get(i).getOwnerID());
-                }
-
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-
-        }
-    }
-
-
-    public void onBoardGateWay(){
-        // finalGatewayA.login("VENDOR_THING_ID:gatewaytest2", "123456");
-            if (gatewayA != null && owner != null) {
-                try {
-                    //getTID("onBoardThread ");
-                    Log.i(TAG, "onBoardThread running");
-                    String gatewayThingID = gatewayA.onboardGateway(GatewayVendorThingID, GatewayPassword, "led", null, owner.getTypedID().toString());
-
-                    if (gatewayThingID != null) {
-                        mappingTable.clear();
-                        mappingTable.add(new MappingObject("Gateway", gatewayThingID, GatewayVendorThingID,
-                                owner.getAccessToken(), owner.getTypedID().toString()));
-                        //WriteSharedPreferences("gatewayThingID", gatewayThingID);
-
-                        List<EndNode> endNodes = getEndNodeList();
-                        if (endNodes != null) {
-                            for (int i = 0; i < endNodes.size(); i++) {
-                                mappingTable.add(i, new MappingObject("EndNode", endNodes.get(i).getThingID(),
-                                        endNodes.get(i).getVendorThingID(), owner.getAccessToken(), owner.getTypedID().toString()));
-                            }
-                        }
-
-                        newMappingFile(mappingTable);
-
-                        //MQTT receive connections established.
-                        mqttClient = new MqttClient(mContext, gatewayA.getmGateway().getMqttEndpoint());
-                        mqttClient.connect();
-                    }
-
-                } catch (ThingIFException e) {
-                    e.printStackTrace();
-                }
-
-            }
-    }
 
     public boolean fileExists(Context context, String filename) {
         File file = context.getFileStreamPath(filename);
@@ -250,24 +165,12 @@ public class ThreadCall extends Thread{
 
 
     public void login(String userName, String passWord){
-        KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, Site.JP);
-        //KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, "127.0.0.1");
-        GatewayAPIBuilder gatewayBuilder = GatewayAPIBuilder.newBuilder(mContext, app, "127.0.0.1", userName, passWord);
-        try {
-            gatewayA = gatewayBuilder.build4Gateway();
-            gatewayEnd = gatewayBuilder.build4EndNode();
-
-        } catch (ThingIFException e) {
-            e.printStackTrace();
-        }
-
-        // sign in user
-        final GatewayAPI4Gateway finalGatewayA = gatewayA;
 
 
         try {
             KiiUser user = KiiUser.logIn(userName, passWord);
             String accessToken = user.getAccessToken();
+            this.accessToken = accessToken;
 
             // Get the access token by getAccessTokenBundle
             Bundle b = user.getAccessTokenBundle();
@@ -276,12 +179,6 @@ public class ThreadCall extends Thread{
             TypedID typedUserID = new TypedID(TypedID.Types.USER, user.getID());
             owner = new Owner(typedUserID, accessToken);
 
-            // Securely store the access token in persistent storage
-            // (assuming that your application implements this function)
-            if (finalGatewayA != null) {
-                finalGatewayA.setAccessToken(accessToken);
-                gatewayEnd.setAccessToken(accessToken);
-            }
 
 
         } catch (IOException e) {
@@ -292,70 +189,5 @@ public class ThreadCall extends Thread{
             // Please check AppException to see what went wrong...
         }
 
-    }
-
-    class MappingObject {
-        String position;
-        String thingID;
-        String vendorThingID;
-        String accessToken;
-        String ownerID;
-
-        /***
-         *  use this class for mapping file .
-         *
-         * @param position Gateway or EndNode
-         * @param thingID  return ID from REST API
-         * @param vendorThingID vendorThingID from onBoarding.
-         * @param accessToken  owner AccessToken
-         * @param ownerID  ownerID
-         */
-        public MappingObject(String position, String thingID, String vendorThingID, String accessToken, String ownerID) {
-            this.position = position;
-            this.thingID = thingID;
-            this.vendorThingID = vendorThingID;
-            this.accessToken = accessToken;
-            this.ownerID = ownerID;
-        }
-
-        public String getPosition() {
-            return position;
-        }
-
-        public String getThingID() {
-            return thingID;
-        }
-
-        public String getVendorThingID() {
-            return vendorThingID;
-        }
-
-        public String getAccessToken() {
-            return accessToken;
-        }
-
-        public String getOwnerID() {
-            return ownerID;
-        }
-
-        public void setPosition(String position) {
-            this.position = position;
-        }
-
-        public void setThingID(String thingID) {
-            this.thingID = thingID;
-        }
-
-        public void setVendorThingID(String vendorThingID) {
-            this.vendorThingID = vendorThingID;
-        }
-
-        public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
-        }
-
-        public void setOwnerID(String ownerID) {
-            this.ownerID = ownerID;
-        }
     }
 }

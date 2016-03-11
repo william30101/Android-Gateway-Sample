@@ -26,7 +26,6 @@ public class GatewayInfoRest extends ServerResource implements IBookService {
     private final String TAG = "Bookservice";
     private ThreadCall mThreadCall;
     private android.content.Context mContext;
-    RegisterGatewayThread mThread;
 
     public void getTID(String msg){
         Thread t = Thread.currentThread();

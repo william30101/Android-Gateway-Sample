@@ -51,6 +51,6 @@ public class Config {
     public static final String SEND_FROM_DISCOVERY = "Discovery Device";
     public static final String SEND_FROM_CONNECT_DEVICE = "Connect Device";
     public static final String SEND_FROM_ENDNODE_ONBOARD = "endNode onboard";
-
+    public static final String SEND_FROM_GET_ONBOARD_LIST = "onboard list";
 
 }
