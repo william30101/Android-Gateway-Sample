@@ -19,7 +19,7 @@ public class MqttClient {
 
     private Context mContext;
     private MqttEndpoint mMqttEndPoint;
-
+    MqttAndroidClient client;
     /***
      *
      * @param context returned by the Activity
@@ -63,7 +63,7 @@ public class MqttClient {
 
         uri = uri + server + ":" + port;
 
-        MqttAndroidClient client;
+
         client = gatewaysample.kii.com.gateway_agent_androidsample.mqtt.Connections.getInstance(mContext).createClient(mContext, uri, clientId);
 
         // create a client handle
@@ -141,6 +141,16 @@ public class MqttClient {
 
     }
 
+    public void disConnect(){
+        if (client.isConnected()){
+            try {
+                client.disconnect();
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
 
     private ChangeListener changeListener = new ChangeListener();
 

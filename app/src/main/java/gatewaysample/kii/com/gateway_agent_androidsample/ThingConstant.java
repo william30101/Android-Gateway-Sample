@@ -2,9 +2,6 @@ package gatewaysample.kii.com.gateway_agent_androidsample;
 
 import org.json.JSONObject;
 
-/**
- * Created by mac on 2/4/16.
- */
 public class ThingConstant {
     private String venderThingID;
     private String thingPassword;

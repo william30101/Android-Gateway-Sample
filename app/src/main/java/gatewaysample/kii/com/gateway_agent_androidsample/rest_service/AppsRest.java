@@ -190,14 +190,18 @@ public class AppsRest extends ServerResource implements IBookService {
 
                             JSONArray endNodesArr = new JSONArray();
                             for (int i=0; i < mappingEndNodes.size(); i++){
+
+
                                 JSONObject endNodeObj = new JSONObject();
                                 try {
                                     endNodeObj.put("thingID", mappingEndNodes.get(i).getThingID());
                                     endNodeObj.put("vendorThingID", mappingEndNodes.get(i).getVendorThingID());
+                                    endNodeObj.put("position", mappingEndNodes.get(i).getPosition());
                                     endNodesArr.put(endNodeObj);
                                 } catch (JSONException e) {
                                     e.printStackTrace();
                                 }
+
 
                             }
 

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -23,6 +24,7 @@ import android.widget.Toast;
 import android.support.v7.widget.Toolbar;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.google.android.gms.iid.InstanceID;
 import com.kii.cloud.storage.KiiThing;
 import com.kii.cloud.storage.KiiUser;
 import com.kii.thingif.Owner;
@@ -71,17 +73,21 @@ public class MainActivity extends AppCompatActivity {
     private GoogleCloudMessaging gcm;
 
 
-    private ThingIFAPI gatewayApi, thingApi;
+    public ThingIFAPI gatewayApi, thingApi;
     private Toolbar toolbar;
 
     GatewayService gatewayService;
 
+
+    private BroadcastReceiver mRegistrationBroadcastReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         accountView = (TextView) findViewById(R.id.accountView);
+
+
 
         KiiUser user = KiiUser.getCurrentUser();
         String userID = user.getID();
@@ -90,6 +96,9 @@ public class MainActivity extends AppCompatActivity {
         Owner owner = new Owner(typedUserID, accessToken);
 
         initToolBar();
+//
+//        Intent intent = new Intent(MainActivity.this, RegistrationIntentService.class);
+//        this.startService(intent);
 
         if (savedInstanceState != null) {
             this.gatewayApi = savedInstanceState.getParcelable("ThingIFGatewayAPI");
@@ -100,15 +109,62 @@ public class MainActivity extends AppCompatActivity {
         thingApi = ApiBuilder.buildApi(getApplicationContext(), owner);
 
 
-        gcm = GoogleCloudMessaging.getInstance(this.getApplicationContext());
+        //gcm = GoogleCloudMessaging.getInstance(this.getApplicationContext());
 
         // if the id is saved in the preference, it skip the registration and just install push.
-        String regId = GCMPreference.getRegistrationId(this.getApplicationContext());
-        if (regId.isEmpty()) {
-            new GCMRegisterTask(this.gatewayApi).execute();
-        }
+//        String regId = GCMPreference.getRegistrationId(this.getApplicationContext());
+//        if (regId.isEmpty()) {
+//            new GCMRegisterTask(this.gatewayApi).execute();
+//        }
 
         getUser();
+
+//        mRegistrationBroadcastReceiver = new BroadcastReceiver() {
+//            @Override
+//            public void onReceive(Context context, Intent intent) {
+//                String errorMessage = intent.getStringExtra("ErrorMessage");
+//                final String token = intent.getStringExtra("token");
+//                Log.e("GCMTest", "Registration completed:" + errorMessage + " token: " + token);
+//                if (errorMessage != null) {
+//                    Toast.makeText(MainActivity.this, "Error push registration:" + errorMessage, Toast.LENGTH_LONG).show();
+//                } else {
+//                    Toast.makeText(MainActivity.this, "Succeeded push registration", Toast.LENGTH_LONG).show();
+//                        new Thread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//
+//                                try {
+//                                    thingApi.installPush(token, PushBackend.GCM);
+//                                } catch (ThingIFException e) {
+//                                    e.printStackTrace();
+//                                }
+//
+////                                    boolean development = true;
+////                                    try {
+////                                        KiiUser.pushInstallation(development).install(token);
+////                                    } catch (IOException e) {
+////                                        e.printStackTrace();
+////                                    } catch (BadRequestException e) {
+////                                        e.printStackTrace();
+////                                    } catch (UnauthorizedException e) {
+////                                        e.printStackTrace();
+////                                    } catch (ForbiddenException e) {
+////                                        e.printStackTrace();
+////                                    } catch (ConflictException e) {
+////                                        e.printStackTrace();
+////                                    } catch (NotFoundException e) {
+////                                        e.printStackTrace();
+////                                    } catch (UndefinedException e) {
+////                                        e.printStackTrace();
+////                                    }
+//
+//
+//                            }
+//                        });
+//
+//                }
+//            }
+//        };
 
 
         listView = (ListView) findViewById(R.id.action_list_view);
@@ -123,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
                         if (gatewayApi.onboarded()) {
                             Log.i(TAG, "already onBoard ");
                         } else {
-                            ThingConstant gateway = new ThingConstant("7000", "1234", "gateway");
+                            ThingConstant gateway = new ThingConstant("gateway-android", "123456", "gateway");
                             onBoardGatewayVendorId(gateway, gatewayApi);
                         }
                         break;
@@ -146,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onDone(KiiThing thing) {
                                     if (thing.getVendorThingID() != null) {
-                                        ThingConstant endNode = new ThingConstant("7001", "1234", thing.getVendorThingID(), gatewayApi.getOwner().getTypedID().toString(), "IdleLoop", null);
+                                        ThingConstant endNode = new ThingConstant("HC-05", "123456", thing.getVendorThingID(), gatewayApi.getOwner().getTypedID().toString(), "endNodeType", null);
                                         onBoardEndNodeVendorId(endNode, thingApi);
 
                                     } else {
@@ -283,6 +339,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+
+//        if (Config.DIRECT_TO_GATEWAY){
+//            Intent intent = new Intent(this, ContactActivity.class);
+//            startActivity(intent);
+//        }
     }
 
     private void sendMessage() {
@@ -323,14 +385,14 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        Log.i(TAG,"menu ID : "+ id);
-        if (id == R.id.gateway_app){
-            Intent intent = new Intent(this, GatewayApp.class);
+        //Log.i(TAG,"menu ID : "+ id);
+        if (id == R.id.gateway_service){
+            Intent intent = new Intent(this, GatewayNoUI.class);
 //            EditText editText = (EditText) findViewById(R.id.edit_message);
 //            String message = editText.getText().toString();
 //            intent.putExtra(EXTRA_MESSAGE, message);
             startActivity(intent);
-        }else if (id == R.id.endnode_app){
+        }else if (id == R.id.controller){
             // Test REST Service
             Intent intent = new Intent(this, ContactActivity.class);
 //            EditText editText = (EditText) findViewById(R.id.edit_message);
@@ -822,6 +884,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(MainActivity.this);
                     registrationId = gcm.register(Config.SENDERID);
+
                     break;
                 } catch (IOException ignore) {
                     lastException = ignore;
@@ -837,6 +900,7 @@ public class MainActivity extends AppCompatActivity {
                 return lastException;
             }
             try {
+
                 this.api.installPush(registrationId, PushBackend.GCM);
             } catch (ThingIFException e) {
                 return e;
@@ -851,6 +915,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+
 
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -877,6 +943,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
 //        LocalBroadcastManager.getInstance(this).registerReceiver(
 //                mReceiver, new IntentFilter("action"));
+
+
         super.onResume();
 
     }
@@ -885,6 +953,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
 //        LocalBroadcastManager.getInstance(this).unregisterReceiver(
 //                mReceiver);
+      //  LocalBroadcastManager.getInstance(this).unregisterReceiver(mRegistrationBroadcastReceiver);
         super.onPause();
     }
 

@@ -14,7 +14,7 @@ public class BookServiceRestletApplication extends Application {
 
     private GatewayService mGatewayService;
 
-    BookServiceRestletApplication(GatewayService gatewayService){
+    public BookServiceRestletApplication(GatewayService gatewayService){
         mGatewayService = gatewayService;
     }
 

@@ -336,6 +336,9 @@ public class GatewayService extends Service {
 
         super.onDestroy();
         mEventBus.unregister(this);
+        if (mqttClient != null){
+            mqttClient.disConnect();
+        }
     }
 
     Thread socketThread = new Thread(new Runnable() {
@@ -690,49 +693,6 @@ public class GatewayService extends Service {
             }
         }
     });
-
-
-    public void sendCmdToEndNode() {
-//        if (mappingTable.size() > 0) {
-//            for (int i=0; i< mappingTable.size(); i++){
-//                if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)){
-//                    String updateThingID = mappingTable.get(i).getThingID();
-//
-//                    Schema schema = buildSchema();
-//
-//                    List<Action> actions = new ArrayList<Action>();
-//
-//                    TurnPower action1 = new TurnPower();
-//                    action1.power = true;
-//
-//                    SetColor action2 = new SetColor();
-//                    action2.color = new int[]{20,50,200};
-//
-//                    SetBrightness action3 = new SetBrightness();
-//                    action3.brightness = 120;
-//
-//                    SetColorTemperature action4 = new SetColorTemperature();
-//                    action4.colorTemperature = 35;
-//
-//                    actions.add(action1);
-//                    actions.add(action2);
-//                    actions.add(action3);
-//                    actions.add(action4);
-//                    String cmdID = null;
-//                    try {
-//                        cmdID = gatewayA.sendCmdToEndNode(updateThingID, Config.SCHEMA_NAME, Config.SCHEMA_VERSION, actions, owner, schema);
-//                    } catch (ThingIFException e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                    if (cmdID != null){
-//                        mCmdID = cmdID;
-//                        message = cmdID;
-//                    }
-//
-//                }
-//            }
-    }
 
     public String getGatewayID() {
         String thingID = "";
@@ -1218,6 +1178,8 @@ public class GatewayService extends Service {
 
     }
 
+
+
     private void writeToMappingFile(String data) {
         try {
             FileOutputStream fOut = openFileOutput(Config.MAPPING_FILE_NAME, MODE_PRIVATE | MODE_APPEND);
@@ -1301,6 +1263,7 @@ public class GatewayService extends Service {
 
         return schemaBuilder.build();
     }
+
 
 
 

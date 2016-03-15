@@ -3,10 +3,12 @@ package gatewaysample.kii.com.gateway_agent_androidsample.rest_service;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
@@ -14,12 +16,14 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -34,8 +38,13 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.kii.cloud.storage.KiiUser;
 import com.kii.thingif.MediaTypes;
 import com.kii.thingif.Owner;
+import com.kii.thingif.PushBackend;
+import com.kii.thingif.ThingIFAPI;
+import com.kii.thingif.TypedID;
 import com.kii.thingif.command.Action;
 import com.kii.thingif.command.Command;
 import com.kii.thingif.exception.ThingIFException;
@@ -66,7 +75,9 @@ import java.util.Map;
 import de.greenrobot.event.EventBus;
 import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
 import gatewaysample.kii.com.gateway_agent_androidsample.R;
+import gatewaysample.kii.com.gateway_agent_androidsample.RegistrationIntentService;
 import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.MqttClient;
+import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.ApiBuilder;
 import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.LightState;
 import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetBrightness;
 import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetBrightnessResult;
@@ -92,8 +103,6 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
     private String[] list = {Config.REGISTER_CMD, Config.GET_GATEWAY_ID,
             Config.SEARCH_ENDNODE, Config.GET_PENDING_ENDNODE, Config.SEND_CMD_TO_ENDNODE};
     private Toolbar toolbar;
-    private String accessToken = "jaiwefjia";
-    private EditText sEditText;
 
     GatewayService gatewayService;
 
@@ -119,6 +128,11 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
     private EventBus mEventBus;
     List<Action> actions = new ArrayList<>();
 
+    private GoogleCloudMessaging gcm;
+    public ThingIFAPI thingApi;
+
+    private BroadcastReceiver mRegistrationBroadcastReceiver;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -129,11 +143,82 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
         initToolBar();
         initUI();
-        GatewayServiceStart();
+        initGCM();
+        //GatewayServiceStart();
+
+        mRegistrationBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String errorMessage = intent.getStringExtra("ErrorMessage");
+                final String token = intent.getStringExtra("token");
+
+                Log.e("GCMTest", "Registration completed:" + errorMessage + " token: " + token);
+                if (errorMessage != null) {
+                    Toast.makeText(ContactActivity.this, "Error push registration:" + errorMessage, Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(ContactActivity.this, "Succeeded push registration", Toast.LENGTH_LONG).show();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            try {
+                                thingApi.installPush(token, PushBackend.GCM);
+                                //thingApi.uninstallPush(token);
+                            } catch (ThingIFException e) {
+                                e.printStackTrace();
+                            }
+
+//                                    boolean development = true;
+//                                    try {
+//                                        KiiUser.pushInstallation(development).install(token);
+//                                    } catch (IOException e) {
+//                                        e.printStackTrace();
+//                                    } catch (BadRequestException e) {
+//                                        e.printStackTrace();
+//                                    } catch (UnauthorizedException e) {
+//                                        e.printStackTrace();
+//                                    } catch (ForbiddenException e) {
+//                                        e.printStackTrace();
+//                                    } catch (ConflictException e) {
+//                                        e.printStackTrace();
+//                                    } catch (NotFoundException e) {
+//                                        e.printStackTrace();
+//                                    } catch (UndefinedException e) {
+//                                        e.printStackTrace();
+//                                    }
+
+
+                        }
+                    }).start();
+
+                }
+            }
+        };
 
         //runningGatewayThread.start();
     }
 
+    private void initGCM(){
+        KiiUser user = KiiUser.getCurrentUser();
+        String userID = user.getID();
+        String accessToken = user.getAccessToken();
+        TypedID typedUserID = new TypedID(TypedID.Types.USER, userID);
+        owner = new Owner(typedUserID, accessToken);
+
+        gcmRegister();
+
+    }
+
+    private void gcmRegister(){
+        gcm = GoogleCloudMessaging.getInstance(this.getApplicationContext());
+        thingApi = ApiBuilder.buildApi(getApplicationContext(), owner);
+
+        Intent intent = new Intent(ContactActivity.this, RegistrationIntentService.class);
+        this.startService(intent);
+
+
+
+    }
 
     private void restServiceStart() {
         try {
@@ -154,9 +239,6 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
         listAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, list);
         listView.setAdapter(listAdapter);
         listView.setOnItemClickListener(this);
-
-        sEditText = (EditText) findViewById(R.id.sEditText);
-
         threadCall = new ThreadCall(this);
 
 
@@ -174,6 +256,17 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
 
     @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
         String name = (String) parent.getItemAtPosition(position);
@@ -182,6 +275,9 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
         switch (name) {
             case Config.REGISTER_CMD:
+
+
+
                 if (restThread != null) {
                     if (restThread.getState() == Thread.State.TERMINATED) {
                         restThread = new RestThread("token", "william.wu", "1qaz@WSX");
@@ -554,23 +650,27 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
             case Config.SEND_FROM_GET_ONBOARD_LIST:
 
 
+                List<String> devicesNameStr = new ArrayList<>();
                 List<String> devicesStr = new ArrayList<>();
                 JSONObject devicesJson = (JSONObject) eventType.getBody();
 
                 try {
                     JSONArray arr = new JSONArray(devicesJson.getString("devices"));
                     for (int i = 0; i < arr.length(); i++) {
-                        //devicesStr.add(arr.getJSONObject(i).optString("vendorThingID"));
-                        devicesStr.add(arr.getJSONObject(i).optString("thingID"));
+                        if (arr.getJSONObject(i).optString("position") != "Gateway"){
+                            devicesNameStr.add(arr.getJSONObject(i).optString("vendorThingID"));
+                            devicesStr.add(arr.getJSONObject(i).optString("thingID"));
+                        }
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
 
                 if (devicesStr.size() > 0) {
+                    final List<String> deviceNameStrFinal = devicesNameStr;
                     final List<String> deviceStrFinal = devicesStr;
                     new AlertDialog.Builder(this)
-                            .setItems(deviceStrFinal.toArray(new String[deviceStrFinal.size()]), new DialogInterface.OnClickListener() {
+                            .setItems(deviceNameStrFinal.toArray(new String[deviceNameStrFinal.size()]), new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     String thingID = deviceStrFinal.get(which);
@@ -605,58 +705,28 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
     }
 
-    public void addActions(Action action) {
-       // List<Action> actions = new ArrayList<Action>();
 
-//        TurnPower action1 = new TurnPower();
-//
-//        if (Integer.parseInt(sEditText.getText().toString()) >= 1){
-//            action1.power = true;
-//        }else{
-//            action1.power = false;
-//        }
-
-//
-//        SetColor action2 = new SetColor();
-//        action2.color = new int[]{20, 50, 200};
-//
-//        SetBrightness action3 = new SetBrightness();
-//        action3.brightness = 120;
-//
-//        SetColorTemperature action4 = new SetColorTemperature();
-//        action4.colorTemperature = 35;
-
-        //actions.add(action);
-
-
-
-
-//                    try {
-//                        cmdID = gatewayA.sendCmdToEndNode(updateThingID, Config.SCHEMA_NAME, Config.SCHEMA_VERSION, actions, owner, schema);
-//                    } catch (ThingIFException e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                    if (cmdID != null){
-//                        mCmdID = cmdID;
-//                        message = cmdID;
-//                    }
-
-
-
-
-
+    @Override
+    protected void onPostResume() {
+        LocalBroadcastManager.getInstance(this).registerReceiver(mRegistrationBroadcastReceiver,
+                new IntentFilter("gatewaysample.kii.com.gateway_agent_androidsample.rest_service.COMPLETED"));
+        super.onPostResume();
     }
 
+    @Override
+    protected void onPause() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mRegistrationBroadcastReceiver);
+        super.onPause();
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Intent serviceIntent = new Intent(ContactActivity.this, GatewayService.class);
+      //  Intent serviceIntent = new Intent(ContactActivity.this, GatewayService.class);
 //        stopService(serviceIntent);
 
-        unbindService(mConnection);
-        stopService(serviceIntent);
+//        unbindService(mConnection);
+//        stopService(serviceIntent);
 
     }
 }
