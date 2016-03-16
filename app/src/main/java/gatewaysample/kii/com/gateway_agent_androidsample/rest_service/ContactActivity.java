@@ -657,7 +657,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
                 try {
                     JSONArray arr = new JSONArray(devicesJson.getString("devices"));
                     for (int i = 0; i < arr.length(); i++) {
-                        if (arr.getJSONObject(i).optString("position") != "Gateway"){
+                        if (!arr.getJSONObject(i).optString("position").equals("Gateway")){
                             devicesNameStr.add(arr.getJSONObject(i).optString("vendorThingID"));
                             devicesStr.add(arr.getJSONObject(i).optString("thingID"));
                         }

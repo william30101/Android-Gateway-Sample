@@ -56,9 +56,6 @@ class ReadInput implements Runnable {
 
 	public static long getThreadId()
 	{
-
-
-
 		Thread t = Thread.currentThread();
 		return t.getId();
 	}

@@ -235,7 +235,7 @@ public class ClientSocketActivity implements CallBack
 //		}
 	}
 
-	private void startGetData(String deviceName) {
+	public void startGetData(String deviceName) {
 		if (socket != null ) {
 			GatewayService gateway;
 			// If device onboard , get thingID from table.
@@ -245,20 +245,24 @@ public class ClientSocketActivity implements CallBack
 					thingID = mMappingTable.get(i).getThingID();
 				}
 			}
-			ReadInput.needStop = false;
-			if (thingID != ""){
-				readInput = new ReadInput(socket, _handler, deviceName, thingID);
-			}else{
-				readInput = new ReadInput(socket, _handler);
+
+			//TODO : If we haven't onboarding , don't run reading status thread.
+			//		 fix this when need to get status first.
+			if (!thingID.equals(Config.unOnboardingThingID)){
+				ReadInput.needStop = false;
+				if (thingID != ""){
+					readInput = new ReadInput(socket, _handler, deviceName, thingID);
+				}else{
+					readInput = new ReadInput(socket, _handler);
+				}
+
+
+				//handler.postDelayed(r, currentSensorList.getCollectFre() * 1000);
+
+				Thread myThread = new Thread(readInput, Config.READ_THREAD_NAME);
+				myThread.start();
+
 			}
-
-
-			//handler.postDelayed(r, currentSensorList.getCollectFre() * 1000);
-
-		Thread myThraed = new Thread(readInput);
-
-		myThraed.start();
-
 
 		}
 

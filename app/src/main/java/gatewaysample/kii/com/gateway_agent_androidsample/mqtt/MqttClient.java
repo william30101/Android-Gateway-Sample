@@ -6,20 +6,25 @@ import android.util.Log;
 import com.kii.thingif.gateway.MqttEndpoint;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
+import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
+import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
 import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.Connection.ConnectionStatus;
-
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
+import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.ActionListener.Action;
 
 public class MqttClient {
 
     private Context mContext;
     private MqttEndpoint mMqttEndPoint;
     MqttAndroidClient client;
+    Listener itemListener;
+    String topic = "";
     /***
      *
      * @param context returned by the Activity
@@ -36,6 +41,7 @@ public class MqttClient {
     public void connect() {
 
         MqttConnectOptions conOpt = new MqttConnectOptions();
+
     /*
      * Mutal Auth connections could do something like this
      *
@@ -55,6 +61,7 @@ public class MqttClient {
         String server =  mMqttEndPoint.getHost();
         String clientId =  mMqttEndPoint.getMqttTopic();
         int port = Integer.parseInt( mMqttEndPoint.getPortTCP());
+
         //boolean cleanSession = (Boolean) data.get(ActivityConstants.cleanSession);
 //
 //        boolean ssl = (Boolean) data.get(ActivityConstants.ssl);
@@ -71,8 +78,12 @@ public class MqttClient {
 
         // last will message
         String message = "";
-        String topic = mMqttEndPoint.getMqttTopic();
+        topic = mMqttEndPoint.getMqttTopic();
         Integer qos = 0;
+
+
+
+
 
         // connection options
 
@@ -80,8 +91,8 @@ public class MqttClient {
 
         String password = mMqttEndPoint.getPassword();
 
-        int timeout = 60;
-        int keepalive = 200;
+        int timeout = 300;
+        int keepalive = 300;
 
         Connection connection = new Connection(clientHandle, clientId, server, port,
                 mContext, client, false);
@@ -121,6 +132,9 @@ public class MqttClient {
 //                callback.onFailure(null, e);
 //            }
 //        }
+
+        itemListener = new Listener((GatewayService)mContext, clientHandle, callback);
+
         client.setCallback(new MqttCallbackHandler(mContext, clientHandle));
 
 
@@ -129,13 +143,34 @@ public class MqttClient {
 
         connection.addConnectionOptions(conOpt);
         Connections.getInstance(mContext).addConnection(connection);
+        IMqttToken token = null;
         if (doConnect) {
             try {
-                client.connect(conOpt, null, callback);
+                token = client.connect(conOpt, null, callback);
+
+                //itemListener.mqttItemSelect(Config.ID_SUBSCRIBE, topic, message);
             }
             catch (MqttException e) {
                 Log.e(this.getClass().getCanonicalName(),
                         "MqttException Occured", e);
+            }
+
+            //Prevent MQTT not ready.
+            try {
+                Thread.sleep(400);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            if (token != null){
+                try {
+
+                    String[] topics = new String[1];
+                    topics[0] = topic;
+                    client.subscribe(topic, qos, null,  new ActionListener(mContext, Action.SUBSCRIBE, clientHandle, topics));
+                } catch (MqttException e) {
+                    e.printStackTrace();
+                }
             }
         }
 

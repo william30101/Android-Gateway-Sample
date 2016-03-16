@@ -43,6 +43,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import de.greenrobot.event.EventBus;
 import gatewaysample.kii.com.gateway_agent_androidsample.converter.BluetoothRetStates;
@@ -94,7 +95,6 @@ public class GatewayService extends Service {
     private final String replaceEndNodeVendorThingID = "endnode-replace-android";
     private final String replaceEndNodePassword = "123456";
 
-    private final String unOnboardingThingID = "000000";
 
     private String mCmdID;
 
@@ -226,7 +226,7 @@ public class GatewayService extends Service {
                 //If Gateway connect EndNode not onboard , add to mapping table.
                 //Give any thingID , we will check ID when pending event sent.
 
-                addToMappingTable(new MappingObject("EndNode", unOnboardingThingID, devieName,
+                addToMappingTable(new MappingObject("EndNode", Config.unOnboardingThingID, devieName,
                         owner.getAccessToken(), owner.getTypedID().toString(), false, false));
 
 
@@ -760,12 +760,27 @@ public class GatewayService extends Service {
 
             endNodeThingID = gatewayEnd.onboardEndNode(endNodeVendorThingID, EndNodePassword, GatewayVendorThingID, owner.getTypedID().toString(), null, "endNodeType");
             //Save to mapping file
+            //If endNode onBoard success , we start thread to get endNode status.
             if (endNodeThingID != null) {
 //                                        writeToMappingFile("EndNode " + endNodeThingID + " " + EndNodeVendorThingID + " "
 //                                                + owner.getAccessToken() + " " + owner.getTypedID().toString());
 
                 replaceMappingTable(new MappingObject("EndNode", endNodeThingID, endNodeVendorThingID,
                         owner.getAccessToken(), owner.getTypedID().toString(), true, true));
+
+                Thread[] threads = Util.getAllThreads();
+                boolean findThread = false;
+                for (int i=0; i< threads.length; i++){
+                    if (threads[i].getName().equals(Config.READ_THREAD_NAME)){
+                        findThread = true;
+                    }
+                }
+
+                // If get data thread not running , start it.
+                // (We start it first , when endnode connect , and onBoarding before connect)
+                if (!findThread){
+                    client.startGetData(endNodeVendorThingID);
+                }
 
                 return endNodeThingID;
 
@@ -779,8 +794,10 @@ public class GatewayService extends Service {
         return "INVALID_GRANT";
     }
 
+
     public String onBoardGateWay() {
         // finalGatewayA.login("VENDOR_THING_ID:gatewaytest2", "123456");
+
         if (gatewayA != null && owner != null) {
             try {
                 //getTID("onBoardThread ");
@@ -805,8 +822,13 @@ public class GatewayService extends Service {
                     newMappingFile(mappingTable);
 
                     //MQTT receive connections established.
+                    if(mqttClient != null){
+                        mqttClient.disConnect();
+                    }
                     mqttClient = new MqttClient(GatewayService.this, gatewayA.getmGateway().getMqttEndpoint());
                     mqttClient.connect();
+
+
 
                     return gatewayThingID;
                 }

@@ -43,6 +43,10 @@ public class Config {
     // Converter
     public static final String SEARCH_ENDNODE = "Search EndNode";
     public static final int READ_ENDNODE_TIME = 500;
+    public static final String unOnboardingThingID = "000000";
+    public static final String READ_THREAD_NAME = "BTReadThread";
+
+
 
     // EventBus type
     public static final String SEND_FROM_BLUETOOTH_DEVICES = "Bluetooth Devices";
@@ -55,5 +59,10 @@ public class Config {
     public static final String SEND_FROM_CONNECT_DEVICE = "Connect Device";
     public static final String SEND_FROM_ENDNODE_ONBOARD = "endNode onboard";
     public static final String SEND_FROM_GET_ONBOARD_LIST = "onboard list";
+
+    //MQTT
+    public static final String ID_PUBLISH = "Publish";
+    public static final String ID_SUBSCRIBE = "Subscribe";
+
 
 }

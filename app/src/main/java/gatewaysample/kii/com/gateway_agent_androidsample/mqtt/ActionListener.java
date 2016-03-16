@@ -13,6 +13,7 @@
 package gatewaysample.kii.com.gateway_agent_androidsample.mqtt;
 
 import android.content.Context;
+import android.util.Log;
 import android.widget.Toast;
 
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -47,6 +48,8 @@ class ActionListener implements IMqttActionListener {
   private String clientHandle;
   /** {@link Context} for performing various operations **/
   private Context context;
+
+  private final String TAG = "ActionListener";
 
   /**
    * Creates a generic action listener for actions performed form any activity
@@ -119,6 +122,7 @@ class ActionListener implements IMqttActionListener {
         (Object[]) additionalArgs);
     c.addAction(actionTaken);
     Notify.toast(context, actionTaken, Toast.LENGTH_SHORT);
+    Log.d(TAG,actionTaken);
 
   }
 
