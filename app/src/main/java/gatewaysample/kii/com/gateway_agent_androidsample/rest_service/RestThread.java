@@ -277,6 +277,20 @@ public class RestThread extends ThreadCall implements Runnable {
 
 //                String thingID = responseBody.optString("thingID");
 //                Log.i(TAG, "thingID : " + thingID);
+            } else if (mUrl.contains("getStates")){
+                JSONObject responseBody =  new JSONObject();
+                String thingID = mUrl.substring(mUrl.lastIndexOf('/') + 1);
+                try {
+                     getEndNodeStates(thingID);
+                } catch (ThingIFException e) {
+                    e.printStackTrace();
+                }
+
+//                Message message = mHandler.obtainMessage(0, "send cmd ret : " + responseBody);
+//                message.sendToTarget();
+
+//                String thingID = responseBody.optString("thingID");
+//                Log.i(TAG, "thingID : " + thingID);
             }
 
             mStop = true;
@@ -341,6 +355,23 @@ public class RestThread extends ThreadCall implements Runnable {
         Log.i(TAG, "cmd ID : " + cmdID);
 
         return cmdID;
+
+    }
+
+
+    public void getEndNodeStates( String thingID) throws ThingIFException {
+
+        String path = MessageFormat.format("/thing-if/apps/{0}/targets/thing:{1}/states", Config.APP_ID, thingID);
+        String url = Path.combine(Config.IOTAPPBASEURL, path);
+        Map<String, String> headers = this.newHeaderRemote();
+        headers.put("X-Kii-AppID", Config.APP_ID);
+        headers.put("X-Kii-AppKey", Config.APP_KEY);
+
+        IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.GET, headers);
+
+        JSONObject responseBody = this.restClient.sendRequest(request);
+
+        sendEventToController(new EventType(Config.SEND_FROM_GET_ENDNODE_STATES, responseBody));
 
     }
 

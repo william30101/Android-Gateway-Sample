@@ -175,10 +175,13 @@ class ReadInput implements Runnable {
 	private JSONObject parseJSON(String msg){
 
 		String subMsg  = "";
+		int leftBracket = nthIndexOf(msg, "{", 1);
+		int rightBracket = nthIndexOf(msg, "}", 1);
+		Log.d(TAG,"left : " + leftBracket + "  right: " + rightBracket);
 
-		if (nthIndexOf(msg, "{", 0) != -1 &&  nthIndexOf(msg, "}", 0) != -1 ){
-			subMsg = msg.substring(nthIndexOf(msg, "{", 1), nthIndexOf(msg, "}", 1) + 1);
-
+		if (leftBracket != -1 &&  rightBracket != -1 && leftBracket < rightBracket ){
+			subMsg = msg.substring(leftBracket, rightBracket + 1);
+			Log.i(TAG,"read subMsg : " + subMsg);
 			try {
 				JSONObject jsonMsg  = new JSONObject(subMsg);
 
@@ -189,7 +192,7 @@ class ReadInput implements Runnable {
 			}
 		}
 
-		return null;
+		return new JSONObject();
 
 
 	}

@@ -21,6 +21,9 @@ public class Config {
     public static final String MAPPING_FILE_NAME = "mapping.db";
     public static final String GATEWAY_USERNAME = "william.wu";
     public static final String GATEWAY_USER_PASS = "1qaz@WSX";
+    public static final String GatewayVendorThingID = "gateway-android";
+    public static final String GatewayPassword = "123456";
+
 
     // client to server command
     public static final String ENDNODE_ONBOARDING = "EndNode Onboarding";
@@ -57,8 +60,10 @@ public class Config {
     public static final String SEND_FROM_GET_PENDING_DEVICE = "Pending Device";
     public static final String SEND_FROM_DISCOVERY = "Discovery Device";
     public static final String SEND_FROM_CONNECT_DEVICE = "Connect Device";
-    public static final String SEND_FROM_ENDNODE_ONBOARD = "endNode onboard";
-    public static final String SEND_FROM_GET_ONBOARD_LIST = "onboard list";
+    public static final String SEND_FROM_ENDNODE_ONBOARD = "EndNode onboard";
+    public static final String SEND_FROM_GET_ONBOARD_LIST = "Onboard list";
+    public static final String SEND_FROM_GET_ENDNODE_STATES = "Get EndNode States";
+
 
     //MQTT
     public static final String ID_PUBLISH = "Publish";

@@ -40,10 +40,14 @@ import android.widget.Toast;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.kii.cloud.storage.KiiUser;
+import com.kii.cloud.storage.exception.app.AppException;
+import com.kii.thingif.KiiApp;
 import com.kii.thingif.MediaTypes;
 import com.kii.thingif.Owner;
 import com.kii.thingif.PushBackend;
+import com.kii.thingif.Site;
 import com.kii.thingif.ThingIFAPI;
+import com.kii.thingif.ThingIFAPIBuilder;
 import com.kii.thingif.TypedID;
 import com.kii.thingif.command.Action;
 import com.kii.thingif.command.Command;
@@ -56,6 +60,11 @@ import com.kii.thingif.internal.utils.JsonUtils;
 import com.kii.thingif.internal.utils.Path;
 import com.kii.thingif.schema.Schema;
 import com.kii.thingif.schema.SchemaBuilder;
+import com.kii.thingif.trigger.Condition;
+import com.kii.thingif.trigger.StatePredicate;
+import com.kii.thingif.trigger.Trigger;
+import com.kii.thingif.trigger.TriggersWhen;
+import com.kii.thingif.trigger.clause.Range;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -68,6 +77,7 @@ import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -93,6 +103,7 @@ import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyControllerEvent;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
+import gatewaysample.kii.com.gateway_agent_androidsample.utils.Util;
 
 
 public class ContactActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
@@ -133,6 +144,13 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
     private BroadcastReceiver mRegistrationBroadcastReceiver;
 
+    private TextView endNodeStates1name, endNodeStates1Value;
+    private TextView endNodeStates2name, endNodeStates2Value;
+
+    public static boolean readStatesStop = false;
+
+    ThingIFAPI api;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -144,6 +162,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
         initToolBar();
         initUI();
         initGCM();
+        //initThingIF();
         //GatewayServiceStart();
 
         mRegistrationBroadcastReceiver = new BroadcastReceiver() {
@@ -234,6 +253,33 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
         }
     }
 
+    private void initThingIF(final String vendorThingID){
+
+
+        //KiiApp app = new KiiApp(Config.APP_ID, Config.APP_KEY, Site.JP);
+        ThingIFAPIBuilder ib = ThingIFAPIBuilder.newBuilder(getApplicationContext(), Config.APP_ID, Config.APP_KEY, Site.JP, owner);
+        ib.addSchema(Util.buildSchema());
+        api = ib.build();
+
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                   // api.onboard(Config.GatewayVendorThingID, Config.GatewayPassword , "led", null, "GATEWAY");
+
+                    api.onboard(vendorThingID, "123456", Config.GatewayVendorThingID, owner.getTypedID().toString(), null, "endNodeType" );
+
+                } catch (ThingIFException e) {
+                    // Onboarding failed for some reasons
+                    // Please check ThingIFException to see what went wrong...
+                }
+            }
+        }).start();
+
+
+    }
+
     private void initUI() {
         listView = (ListView) findViewById(R.id.list_contact);
         listAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, list);
@@ -275,7 +321,7 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
         switch (name) {
             case Config.REGISTER_CMD:
-
+                // We have initial on Controller side.
 
 
                 if (restThread != null) {
@@ -398,13 +444,74 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
 
     }
 
-    private void createDialog(final String thingID){
+    private void getEndNodeStates(final String thingID){
+
+        readStatesStop = false;
+
+        Thread getStates = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                // TODO : When dialog disminn , close this thread.
+
+                while (!readStatesStop) {
+
+                    RestThread.mStop = false;
+
+                    if (restThread != null) {
+                        if (restThread.getState() == Thread.State.TERMINATED) {
+                            restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/getStates/" + thingID);
+                            restThread.start();
+                        }
+                        if (!restThread.isAlive()) {
+                            restThread.start();
+                        }
+                    } else {
+                        restThread = new RestThread("apps/" + Config.APP_ID + "/gateway/end-nodes/getStates/" + thingID);
+                        restThread.start();
+                    }
+
+
+
+                    try {
+                        Thread.sleep(Config.READ_ENDNODE_TIME * 2);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        getStates.start();
+
+
+    }
+
+    private void createDialog(final String thingID, final String vendorThingID){
 
         // custom dialog
         final Dialog dialog = new Dialog(ContactActivity.this);
         dialog.setContentView(R.layout.cmd_dialog);
+
+        endNodeStates1name = (TextView) dialog.findViewById(R.id.states1_name);
+        endNodeStates1Value = (TextView) dialog.findViewById(R.id.states1_value);
+        endNodeStates2name = (TextView) dialog.findViewById(R.id.states2_name);
+        endNodeStates2Value = (TextView) dialog.findViewById(R.id.states2_value);
+        initThingIF(vendorThingID);
+        final TextView triggerValue = (TextView) dialog.findViewById(R.id.trigger_value);
+        Button triggerAdd = (Button) dialog.findViewById(R.id.trigger_add);
+        triggerAdd.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                 createTrigger(Integer.parseInt(triggerValue.getText().toString()));
+            }
+        });
+
         dialog.setTitle("CMD Dialog");
 
+
+        //Get EndNode States.
+        getEndNodeStates(thingID);
 
 //        LinearLayout ll = (LinearLayout)dialog.findViewById(R.id.cmd_dialog_linear);
 //        ll.getLayoutParams().width=360;
@@ -465,12 +572,19 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
         WindowManager m = getWindowManager();
         Display d = m.getDefaultDisplay(); // 获取屏幕宽、高用
         WindowManager.LayoutParams p = dialogWindow.getAttributes(); // 获取对话框当前的参数值
-        p.height = (int) (d.getHeight() * 0.6); // 高度设置为屏幕的0.6
-        p.width = (int) (d.getWidth() * 0.65); // 宽度设置为屏幕的0.65
+        p.height = (int) (d.getHeight() * 0.8);
+        p.width = (int) (d.getWidth() * 0.8);
         dialogWindow.setAttributes(p);
 
+        dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                readStatesStop = true;
+            }
+        });
 
         dialog.show();
+
 
     }
 
@@ -494,6 +608,8 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
         }
 
     }
+
+
 
     private void GatewayServiceStart() {
         Intent serviceIntent = new Intent(ContactActivity.this, GatewayService.class);
@@ -674,9 +790,10 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     String thingID = deviceStrFinal.get(which);
+                                    String vendorThingID = deviceNameStrFinal.get(which);
                                     Toast.makeText(ContactActivity.this, thingID, Toast.LENGTH_SHORT).show();
 
-                                    createDialog(thingID);
+                                    createDialog(thingID, vendorThingID);
 
 //                                    RestThread.mStop = false;
 //                                    if (restThread != null) {
@@ -699,12 +816,89 @@ public class ContactActivity extends AppCompatActivity implements AdapterView.On
                 }
 
                 break;
+
+            /*{
+                  "brightness" : 80,
+                  "color" : "[50, 60, 70]",
+                  "power" : true,
+                  "colorTemperature" : 100
+               }
+            */
+            case Config.SEND_FROM_GET_ENDNODE_STATES:
+               // Util.getTID("eventbus endnode states");
+                JSONObject statesJSON = (JSONObject) eventType.getBody();
+                Iterator<String> iter = statesJSON.keys();
+                while (iter.hasNext()) {
+                    String key = iter.next();
+                    String value = statesJSON.optString(key);
+
+                    if (key.equals("power")){
+                        //Update UI
+                        if(endNodeStates1name != null){
+                            endNodeStates1name.setText(key);
+                        }
+
+                        if (endNodeStates1Value != null){
+                            endNodeStates1Value.setText(value);
+                        }
+                    }
+
+                    if (key.equals("brightness")){
+                        //Update UI
+                        if(endNodeStates2name != null){
+                            endNodeStates2name.setText(key);
+                        }
+
+                        if (endNodeStates2Value != null){
+                            endNodeStates2Value.setText(value);
+                        }
+                    }
+
+
+                }
+
+                break;
             default:
                 break;
         }
 
     }
 
+
+    private void createTrigger(int conditionValue){
+        // Create a command
+        final List<Action> actions = new ArrayList<>();
+        TurnPower action1 = new TurnPower();
+        action1.power = false;
+
+        SetBrightness action2 = new SetBrightness();
+        action2.brightness = 10;
+
+
+        actions.add(action1);
+        actions.add(action2);
+
+// Create a condition
+        Condition condition = new Condition(Range.greaterThanEquals("brightness", conditionValue));
+        final StatePredicate predicate = new StatePredicate(condition, TriggersWhen.CONDITION_CHANGED);
+
+// Send a trigger
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                try {
+                    Trigger trigger = api.postNewTrigger("birghtness-Demo", 1, actions, predicate);
+                } catch (ThingIFException e) {
+                    Log.i(TAG,"trigger error : " + e);
+                    // Posting failed for some reasons
+                    // Please check ThingIFException to see what went wrong...
+                }
+            }
+        }).start();
+
+    }
 
     @Override
     protected void onPostResume() {

@@ -85,8 +85,7 @@ public class GatewayService extends Service {
     private static int port = 9876;
     private volatile boolean cancelled;
     private MqttClient mqttClient;
-    private final String GatewayVendorThingID = "gateway-android";
-    private final String GatewayPassword = "123456";
+
     List<MappingObject> mappingTable = new ArrayList<>();
 
     private final String EndNodeVendorThingID = "endnode-android";
@@ -193,6 +192,11 @@ public class GatewayService extends Service {
                                     actions.add(action3);
                                     actions.add(action4);
                                     gatewayA.updateCmdResult(BTret.getThingID(), commandID, actions);
+
+                                    gatewayA.updateEndNodeStates(BTret.getThingID(), BTret.getBody());
+
+
+
                                 } catch (ThingIFException e) {
                                     e.printStackTrace();
                                 }
@@ -382,7 +386,7 @@ public class GatewayService extends Service {
                                 Log.i(TAG, "onBoardThread running");
 
 
-                                updateThingID = gatewayEnd.onboardEndNode(EndNodeVendorThingID, EndNodePassword, GatewayVendorThingID, owner.getTypedID().toString(), null, "endNodeType");
+                                updateThingID = gatewayEnd.onboardEndNode(EndNodeVendorThingID, EndNodePassword, Config.GatewayVendorThingID, owner.getTypedID().toString(), null, "endNodeType");
                                 //Save to mapping file
                                 if (updateThingID != null) {
 //                                        writeToMappingFile("EndNode " + endNodeThingID + " " + EndNodeVendorThingID + " "
@@ -525,7 +529,7 @@ public class GatewayService extends Service {
                                     if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
                                         updateThingID = mappingTable.get(i).getThingID();
 
-                                        Schema schema = buildSchema();
+                                        Schema schema = Util.buildSchema();
 
                                         List<Action> actions = new ArrayList<Action>();
 
@@ -569,7 +573,7 @@ public class GatewayService extends Service {
                                     if (mappingTable.get(i).getVendorThingID().equals(EndNodeVendorThingID)) {
                                         updateThingID = mappingTable.get(i).getThingID();
 
-                                        Schema schema = buildSchema();
+                                        Schema schema = Util.buildSchema();
 
                                         List<Action> actions = new ArrayList<>();
 
@@ -758,7 +762,7 @@ public class GatewayService extends Service {
 
             Log.i(TAG, "onBoard Thing");
 
-            endNodeThingID = gatewayEnd.onboardEndNode(endNodeVendorThingID, EndNodePassword, GatewayVendorThingID, owner.getTypedID().toString(), null, "endNodeType");
+            endNodeThingID = gatewayEnd.onboardEndNode(endNodeVendorThingID, EndNodePassword, Config.GatewayVendorThingID, owner.getTypedID().toString(), null, "endNodeType");
             //Save to mapping file
             //If endNode onBoard success , we start thread to get endNode status.
             if (endNodeThingID != null) {
@@ -802,12 +806,12 @@ public class GatewayService extends Service {
             try {
                 //getTID("onBoardThread ");
                 android.util.Log.i(TAG, "onBoardThread running");
-                String gatewayThingID = gatewayA.onboardGateway(GatewayVendorThingID, GatewayPassword, "led", null, owner.getTypedID().toString());
+                String gatewayThingID = gatewayA.onboardGateway(Config.GatewayVendorThingID, Config.GatewayPassword, "led", null, owner.getTypedID().toString());
 
                 if (gatewayThingID != null) {
                     mappingTable.clear();
                     //if we get thingID , means that gateway onboard success.
-                    mappingTable.add(new MappingObject("Gateway", gatewayThingID, GatewayVendorThingID,
+                    mappingTable.add(new MappingObject("Gateway", gatewayThingID, Config.GatewayVendorThingID,
                             owner.getAccessToken(), owner.getTypedID().toString(), true, true));
                     //WriteSharedPreferences("gatewayThingID", gatewayThingID);
 
@@ -932,7 +936,7 @@ public class GatewayService extends Service {
 
         KiiThingInfo thingInfo = null;
         if (gatewayA != null && owner != null) {
-            JSONObject thingObject = gatewayA.getThingInfo(GatewayVendorThingID);
+            JSONObject thingObject = gatewayA.getThingInfo(Config.GatewayVendorThingID);
 
             if (thingObject != null) {
                 //TODO
@@ -965,11 +969,11 @@ public class GatewayService extends Service {
                     try {
                         //getTID("onBoardThread ");
                         Log.i(TAG, "onBoardThread running");
-                        String gatewayThingID = gatewayA.onboardGateway(GatewayVendorThingID, GatewayPassword, "led", null, owner.getTypedID().toString());
+                        String gatewayThingID = gatewayA.onboardGateway(Config.GatewayVendorThingID, Config.GatewayPassword, "led", null, owner.getTypedID().toString());
 
                         if (gatewayThingID != null) {
                             mappingTable.clear();
-                            mappingTable.add(new MappingObject("Gateway", gatewayThingID, GatewayVendorThingID,
+                            mappingTable.add(new MappingObject("Gateway", gatewayThingID, Config.GatewayVendorThingID,
                                     owner.getAccessToken(), owner.getTypedID().toString(), true, false));
                             //WriteSharedPreferences("gatewayThingID", gatewayThingID);
 
@@ -1275,16 +1279,7 @@ public class GatewayService extends Service {
     }
 
 
-    public Schema buildSchema() {
-        SchemaBuilder schemaBuilder = SchemaBuilder.newSchemaBuilder(Config.THING_TYPE,
-                Config.SCHEMA_NAME, Config.SCHEMA_VERSION, LightState.class);
-        schemaBuilder.addActionClass(TurnPower.class, TurnPowerResult.class);
-        schemaBuilder.addActionClass(SetBrightness.class, SetBrightnessResult.class);
-        schemaBuilder.addActionClass(SetColor.class, SetColorResult.class);
-        schemaBuilder.addActionClass(SetColorTemperature.class, SetColorTemperatureResult.class);
 
-        return schemaBuilder.build();
-    }
 
 
 
