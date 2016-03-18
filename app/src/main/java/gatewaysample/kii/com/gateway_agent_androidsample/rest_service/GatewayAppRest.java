@@ -100,7 +100,7 @@ public class GatewayAppRest extends ServerResource implements IBookService {
 //
 //                            try {
 //                                byte[] data = accessTokenStr.getBytes("UTF-8");
-//                                responseBody.put("accessToken",Base64.encodeToString(data, Base64.DEFAULT));
+//                                responseBody.put("mAccessToken",Base64.encodeToString(data, Base64.DEFAULT));
 //                            } catch (UnsupportedEncodingException e) {
 //                                e.printStackTrace();
 //                            } catch (JSONException e) {

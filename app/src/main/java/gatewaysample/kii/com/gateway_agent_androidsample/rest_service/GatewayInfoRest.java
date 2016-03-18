@@ -24,7 +24,6 @@ import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
 public class GatewayInfoRest extends ServerResource implements IBookService {
 
     private final String TAG = "Bookservice";
-    private ThreadCall mThreadCall;
     private android.content.Context mContext;
 
     public void getTID(String msg){
@@ -40,7 +39,6 @@ public class GatewayInfoRest extends ServerResource implements IBookService {
     @Get
     public String present(Representation entity) {
         getTID("rest ");
-        //mThreadCall = (ThreadCall) getContext().getAttributes().get("threadCall");
         mContext = (android.content.Context) getContext().getAttributes().get("mContext");
         Form form = new Form(entity);
         Set<String> names = form.getNames();
@@ -99,7 +97,7 @@ public class GatewayInfoRest extends ServerResource implements IBookService {
 
                             try {
                                 byte[] data = accessTokenStr.getBytes("UTF-8");
-                                responseBody.put("accessToken",Base64.encodeToString(data, Base64.DEFAULT));
+                                responseBody.put("mAccessToken",Base64.encodeToString(data, Base64.DEFAULT));
                             } catch (UnsupportedEncodingException e) {
                                 e.printStackTrace();
                             } catch (JSONException e) {

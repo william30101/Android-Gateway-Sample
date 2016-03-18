@@ -1,21 +1,13 @@
 package gatewaysample.kii.com.gateway_agent_androidsample.converter;
 
-import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.content.Intent;
-import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
-import android.view.View;
-import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import com.kii.thingif.command.Action;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,8 +22,6 @@ import java.util.UUID;
 
 import de.greenrobot.event.EventBus;
 import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
-import gatewaysample.kii.com.gateway_agent_androidsample.R;
-import gatewaysample.kii.com.gateway_agent_androidsample.rest_service.ContactActivity;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;

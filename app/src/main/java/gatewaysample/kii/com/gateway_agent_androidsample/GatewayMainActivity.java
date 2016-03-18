@@ -1,118 +1,16 @@
-package gatewaysample.kii.com.gateway_agent_androidsample.rest_service;
+package gatewaysample.kii.com.gateway_agent_androidsample;
 
-import android.app.Dialog;
-import android.app.ProgressDialog;
-import android.bluetooth.BluetoothDevice;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
-import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
-import android.util.Log;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.CompoundButton;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ListView;
-import android.widget.Switch;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import com.google.android.gms.gcm.GoogleCloudMessaging;
-import com.kii.cloud.storage.KiiUser;
-import com.kii.cloud.storage.exception.app.AppException;
-import com.kii.thingif.KiiApp;
-import com.kii.thingif.MediaTypes;
-import com.kii.thingif.Owner;
-import com.kii.thingif.PushBackend;
-import com.kii.thingif.Site;
-import com.kii.thingif.ThingIFAPI;
-import com.kii.thingif.ThingIFAPIBuilder;
-import com.kii.thingif.TypedID;
-import com.kii.thingif.command.Action;
-import com.kii.thingif.command.Command;
-import com.kii.thingif.exception.ThingIFException;
-import com.kii.thingif.gateway.GatewayAPI4EndNode;
-import com.kii.thingif.gateway.GatewayAPI4Gateway;
-import com.kii.thingif.internal.GsonRepository;
-import com.kii.thingif.internal.http.IoTRestRequest;
-import com.kii.thingif.internal.utils.JsonUtils;
-import com.kii.thingif.internal.utils.Path;
-import com.kii.thingif.schema.Schema;
-import com.kii.thingif.schema.SchemaBuilder;
-import com.kii.thingif.trigger.Condition;
-import com.kii.thingif.trigger.StatePredicate;
-import com.kii.thingif.trigger.Trigger;
-import com.kii.thingif.trigger.TriggersWhen;
-import com.kii.thingif.trigger.clause.Range;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.restlet.Component;
-import org.restlet.data.Protocol;
-
-import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 
-import de.greenrobot.event.EventBus;
-import gatewaysample.kii.com.gateway_agent_androidsample.ControllerFragment;
-import gatewaysample.kii.com.gateway_agent_androidsample.GatewayService;
-import gatewaysample.kii.com.gateway_agent_androidsample.R;
-import gatewaysample.kii.com.gateway_agent_androidsample.RegistrationIntentService;
-import gatewaysample.kii.com.gateway_agent_androidsample.SettingsFragment;
-import gatewaysample.kii.com.gateway_agent_androidsample.mqtt.MqttClient;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.ApiBuilder;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.LightState;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetBrightness;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetBrightnessResult;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColor;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorResult;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorTemperature;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.SetColorTemperatureResult;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.TurnPower;
-import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.TurnPowerResult;
-import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
-import gatewaysample.kii.com.gateway_agent_androidsample.utils.ControllCmd;
-import gatewaysample.kii.com.gateway_agent_androidsample.utils.EventType;
-import gatewaysample.kii.com.gateway_agent_androidsample.utils.MappingObject;
-import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyControllerEvent;
-import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
-import gatewaysample.kii.com.gateway_agent_androidsample.utils.Util;
+public class GatewayMainActivity extends AppCompatActivity{
 
-
-public class ContactActivity extends AppCompatActivity{
-
-    private final static String TAG = "ContactActivity";
+    private final static String TAG = "GatewayMainActivity";
 //    ListView listView;
 //    private ArrayAdapter<String> listAdapter;
 //    private String[] list = {Config.REGISTER_CMD, Config.GET_GATEWAY_ID,
@@ -136,7 +34,7 @@ public class ContactActivity extends AppCompatActivity{
 //    GatewayAPI4Gateway gatewayA;
 //    GatewayAPI4EndNode gatewayEnd;
     //Owner owner;
-    ThreadCall threadCall;
+    //ThreadCall threadCall;
     //private static RestThread restThread;
    // private static Dialog dialog;
 
@@ -286,7 +184,6 @@ public class ContactActivity extends AppCompatActivity{
 
     private void initUI() {
 
-        threadCall = new ThreadCall(this);
         FragmentManager fragMgr = getSupportFragmentManager();
         ControllerFragment controllerFrag = new ControllerFragment();
         fragMgr.beginTransaction()

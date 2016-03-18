@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -24,7 +23,6 @@ import android.widget.Toast;
 import android.support.v7.widget.Toolbar;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
-import com.google.android.gms.iid.InstanceID;
 import com.kii.cloud.storage.KiiThing;
 import com.kii.cloud.storage.KiiUser;
 import com.kii.thingif.Owner;
@@ -50,10 +48,8 @@ import java.util.List;
 
 import gatewaysample.kii.com.gateway_agent_androidsample.promise_api_wrapper.IoTCloudPromiseAPIWrapper;
 import gatewaysample.kii.com.gateway_agent_androidsample.promise_api_wrapper.KiiCloudPromiseAPIWrapper;
-import gatewaysample.kii.com.gateway_agent_androidsample.rest_service.ContactActivity;
 import gatewaysample.kii.com.gateway_agent_androidsample.smart_light_demo.ApiBuilder;
 import gatewaysample.kii.com.gateway_agent_androidsample.utils.Config;
-import gatewaysample.kii.com.gateway_agent_androidsample.utils.GCMPreference;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -394,7 +390,7 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         }else if (id == R.id.controller){
             // Test REST Service
-            Intent intent = new Intent(this, ContactActivity.class);
+            Intent intent = new Intent(this, GatewayMainActivity.class);
 //            EditText editText = (EditText) findViewById(R.id.edit_message);
 //            String message = editText.getText().toString();
 //            intent.putExtra(EXTRA_MESSAGE, message);

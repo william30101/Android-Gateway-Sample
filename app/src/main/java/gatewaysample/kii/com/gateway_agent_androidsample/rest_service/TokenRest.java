@@ -47,7 +47,7 @@ public class TokenRest extends ServerResource implements IBookService {
 
         if (mGatewayService != null){
             try {
-                responseBody.put("accessToken",mGatewayService.getCrediental("william.wu","1qaz@WSX"));
+                responseBody.put("mAccessToken",mGatewayService.getCrediental("william.wu","1qaz@WSX"));
             } catch (JSONException e) {
                 e.printStackTrace();
             }

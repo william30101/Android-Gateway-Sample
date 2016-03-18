@@ -112,6 +112,7 @@ public class ControllerFragment extends Fragment implements  AdapterView.OnItemC
         initUI(v);
         initGCM();
 
+        RestThread.setmContext(getActivity());
         mEventBus = EventBus.getDefault();
         if (!mEventBus.isRegistered(this)) {
             mEventBus.register(this);
@@ -212,14 +213,14 @@ public class ControllerFragment extends Fragment implements  AdapterView.OnItemC
 
                     if (restThread != null) {
                         if (restThread.getState() == Thread.State.TERMINATED) {
-                            restThread = new RestThread("token", "william.wu", "1qaz@WSX");
+                            restThread = new RestThread("token");
                             restThread.start();
                         }
                         if (!restThread.isAlive()) {
                             restThread.start();
                         }
                     } else {
-                        restThread = new RestThread("token", "william.wu", "1qaz@WSX");
+                        restThread = new RestThread("token");
                         restThread.start();
                     }
                     break;
