@@ -2,8 +2,10 @@ package gatewaysample.kii.com.gateway_agent_androidsample.rest_service;
 
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.util.Base64;
 import android.util.Log;
@@ -57,14 +59,14 @@ import gatewaysample.kii.com.gateway_agent_androidsample.utils.MyEvent;
 
 public class RestThread extends ThreadCall implements Runnable {
 
-    static boolean mStop = false;
+    static public boolean mStop = false;
     protected final IoTRestClient restClient = new IoTRestClient();
     private String gatewayCrediental;
 
     private String mUserName;
     private String mPassWord;
     private String mUrl;
-    private String baseSite = "http://10.0.0.9:8080/";
+    private String baseSite = "http://192.168.1.114:8080/";
     private String onBoardGatewayUrl = baseSite + "gateway-app/gateway/onboarding";
     private ContactActivity myActivity;
     //private ContactActivity.mShowHandler mHandler;
@@ -102,7 +104,11 @@ public class RestThread extends ThreadCall implements Runnable {
             //String path = "http://10.0.0.5:8080/gateway-app/gateway/onboarding";
 
            // String url = path;
-            String url = baseSite + mUrl;
+
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+            String  restServerURL = "http://" + prefs.getString("edittext_preference", baseSite) + ":8080/";
+
+            String url = restServerURL + mUrl;
             Map<String, String> headers = newHeader();
 
             if (mUrl.contains("onboarding")){ //onboarding endnode.

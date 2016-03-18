@@ -10,8 +10,15 @@
         android:background="#ff6d7fe2"
         />
 
-    <ListView android:id="@+id/list_contact" android:layout_width="fill_parent"
-        android:layout_height="wrap_content" />
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/frame_layout">
+
+
+
+    </FrameLayout>
+
 
 
 

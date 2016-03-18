@@ -33,7 +33,7 @@ public class RegistrationIntentService extends IntentService {
             Log.d(TAG, "Failed to complete token refresh", e);
             error = e.getLocalizedMessage();
         }
-        Intent registrationComplete = new Intent("gatewaysample.kii.com.gateway_agent_androidsample.rest_service.COMPLETED");
+        Intent registrationComplete = new Intent("gatewaysample.kii.com.gateway_agent_androidsample.COMPLETED");
         registrationComplete.putExtra("ErrorMessage", error);
         registrationComplete.putExtra("token", token);
         LocalBroadcastManager.getInstance(this).sendBroadcast(registrationComplete);

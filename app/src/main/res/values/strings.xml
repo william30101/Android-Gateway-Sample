@@ -111,4 +111,8 @@
     <string name="keepaliveHint">200</string>
     <string name="sslKeyLocaltion">file://</string>
     <string name="select">select</string>
+
+    <string name="setting_title">Settings</string>
+    <string name="rest_address">REST Address</string>
+    <string name="rest_address_edittext_preference">edit REST server IP</string>
 </resources>

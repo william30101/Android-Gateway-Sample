@@ -45,7 +45,7 @@ public class Config {
 
     // Converter
     public static final String SEARCH_ENDNODE = "Search EndNode";
-    public static final int READ_ENDNODE_TIME = 500;
+    public static final int READ_ENDNODE_TIME = 2000; // 2000 ms
     public static final String unOnboardingThingID = "000000";
     public static final String READ_THREAD_NAME = "BTReadThread";
 

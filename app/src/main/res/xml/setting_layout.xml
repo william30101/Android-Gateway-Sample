@@ -1,0 +1,15 @@
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="@string/setting_title">
+
+        <EditTextPreference
+            android:key="edittext_preference"
+            android:title="@string/rest_address"
+            android:summary="@string/rest_address_edittext_preference"
+            android:dialogTitle="@string/rest_address" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

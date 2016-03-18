@@ -157,7 +157,7 @@ public class MqttClient {
 
             //Prevent MQTT not ready.
             try {
-                Thread.sleep(400);
+                Thread.sleep(600);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
