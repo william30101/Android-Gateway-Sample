@@ -106,7 +106,7 @@ public class RestThread extends Thread implements Runnable {
             if (mUrl.contains("onboarding")) { //onboarding endnode.
 
 
-                IoTRestRequest request = new IoTRestRequest(onBoardingURL, IoTRestRequest.Method.POST, headers);
+                IoTRestRequest request = new IoTRestRequest(url, IoTRestRequest.Method.POST, headers);
 
                 JSONObject responseBody = new JSONObject();
                 try {

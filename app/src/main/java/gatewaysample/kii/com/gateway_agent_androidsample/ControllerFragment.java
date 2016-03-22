@@ -138,6 +138,7 @@ public class ControllerFragment extends Fragment implements  AdapterView.OnItemC
                                 //thingApi.uninstallPush(token);
                             } catch (ThingIFException e) {
                                 e.printStackTrace();
+
                             }
 
 //                                    boolean development = true;
