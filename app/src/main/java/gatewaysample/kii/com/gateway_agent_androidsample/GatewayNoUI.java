@@ -10,6 +10,7 @@ import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import org.restlet.Component;
@@ -43,6 +44,18 @@ public class GatewayNoUI extends AppCompatActivity {
             setSupportActionBar(toolbar);
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                break;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     private void GatewayServiceStart() {

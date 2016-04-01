@@ -115,6 +115,8 @@ public class ClientSocketActivity implements CallBack
 //		}).start();
 		//connect(device);
 
+		//
+
 	}
 
 	protected void onDestroy() {
